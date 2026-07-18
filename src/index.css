@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background: #000;
+  }
+
+  body {
+    @apply antialiased;
+    margin: 0;
+    background:
+      radial-gradient(circle at top left, rgba(126, 34, 206, 0.28), transparent 34rem),
+      linear-gradient(180deg, #05000d 0%, #000 42%, #08030f 100%);
+    color: #f4f4f5;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(168, 85, 247, 0.48);
+    color: #fff;
+  }
+}
+
+@layer utilities {
+  .purple-grid {
+    background-image:
+      linear-gradient(rgba(168, 85, 247, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168, 85, 247, 0.08) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+}
