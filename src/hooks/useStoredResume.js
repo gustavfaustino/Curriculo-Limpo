@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { STORAGE_KEY } from "../constants/data";
 
-const BLANK = {
+export const BLANK = {
     name: "",
     role: "",
     email: "",

@@ -12,12 +12,12 @@ export function Choice({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {label}
-        {required && <span className="text-red-400"> *</span>}
+      <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <span>{label}</span>
+        {required && <span className="ml-1 text-red-400">*</span>}
         {tooltip && (
           <span
-            className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-500/80 text-[10px] text-zinc-200 cursor-help"
+            className="ml-2 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-zinc-500/80 text-[10px] text-zinc-200 cursor-help"
             title={tooltip}
           >
             ?

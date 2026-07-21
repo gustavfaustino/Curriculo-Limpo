@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { Packer } from "docx";
-import { useStoredResume } from "./hooks/useStoredResume";
+import { useStoredResume, BLANK } from "./hooks/useStoredResume";
 import { buildPdf } from "./lib/pdf";
 import { buildDocx } from "./lib/docx";
 import { createId, isFilled, joinDate, downloadFile } from "./utils/helpers";
@@ -246,6 +246,22 @@ function App() {
     return checks.filter(Boolean).length;
   }, [resume]);
 
+  const handleClear = () => {
+    if (window.confirm(t.confirmClear)) {
+      setResume(BLANK);
+      setSkillsDraft("");
+      setErrors({ name: false, email: false });
+      setActive("profile");
+      setNotice({ type: "success", message: t.cleared });
+
+      if (contentRef.current) {
+        contentRef.current.scrollIntoView({ behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+  };
+
   const handleExport = async () => {
     const missing = [];
     const nextErrors = { name: false, email: false };
@@ -386,11 +402,12 @@ function App() {
       </header>
 
       <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-8">
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+        {/* Menu Lateral transformado em Menu Sticky Mobile */}
+        <aside className="sticky top-0 z-20 -mx-4 bg-black/90 px-4 py-3 backdrop-blur-xl lg:static lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
           <nav
             role="tablist"
             aria-label="Seções do currículo"
-            className="flex overflow-x-auto pb-2 gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid md:pb-2 scrollbar-thin"
+            className="no-scrollbar flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid lg:pb-2"
           >
             {TABS.map((tab, index) => (
               <button
@@ -401,9 +418,9 @@ function App() {
                 aria-selected={active === tab}
                 aria-controls={`section-${tab}`}
                 onClick={() => handleTabChange(tab)}
-                className={`flex min-h-[44px] shrink-0 items-center justify-between whitespace-nowrap rounded-md px-3 text-left text-sm transition md:w-full ${
+                className={`flex min-h-[44px] snap-start shrink-0 items-center justify-between whitespace-nowrap rounded-md px-4 text-left text-sm transition md:w-full md:px-3 ${
                   active === tab
-                    ? "bg-purple-600 text-white"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
                     : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
                 }`}
               >
@@ -415,7 +432,7 @@ function App() {
                     </span>
                   )}
                 </span>
-                <span className="ml-3 text-xs opacity-70">
+                <span className="ml-3 text-xs opacity-70 hidden lg:inline-block">
                   {String(index + 1).padStart(2, "0")}
                 </span>
               </button>
@@ -964,6 +981,13 @@ function App() {
                 label={t.sections.certificates}
               />
             </div>
+            <button
+              type="button"
+              onClick={handleClear}
+              className="mt-5 flex min-h-[40px] w-full items-center justify-center rounded-md border border-red-900/40 bg-red-950/20 text-sm font-semibold text-red-400 transition hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+            >
+              {t.clear}
+            </button>
           </div>
 
           <div className="rounded-lg border border-purple-900/70 bg-purple-950/30 p-4">

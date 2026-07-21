@@ -5,16 +5,24 @@
 @layer base {
   html {
     background: #000;
+    /* Evita que o usuário dê zoom acidental com dois toques rápidos */
+    touch-action: manipulation;
   }
 
   body {
     @apply antialiased;
     margin: 0;
     background:
-      radial-gradient(circle at top left, rgba(126, 34, 206, 0.28), transparent 34rem),
+      radial-gradient(
+        circle at top left,
+        rgba(126, 34, 206, 0.28),
+        transparent 34rem
+      ),
       linear-gradient(180deg, #05000d 0%, #000 42%, #08030f 100%);
     color: #f4f4f5;
     min-height: 100vh;
+    /* Remove aquele fundo cinza que pisca ao tocar em botões no mobile */
+    -webkit-tap-highlight-color: transparent;
   }
 
   ::selection {
@@ -29,5 +37,14 @@
       linear-gradient(rgba(168, 85, 247, 0.08) 1px, transparent 1px),
       linear-gradient(90deg, rgba(168, 85, 247, 0.08) 1px, transparent 1px);
     background-size: 36px 36px;
+  }
+
+  /* Oculta a barra de rolagem visualmente, mas mantém o scroll funcionando */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE e Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }
