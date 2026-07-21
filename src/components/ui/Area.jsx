@@ -1,4 +1,3 @@
-// src/components/ui/Area.jsx
 import React from "react";
 
 export function Area({
@@ -23,7 +22,6 @@ export function Area({
           <span
             className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-500/80 text-[10px] text-zinc-200 cursor-help"
             title={tooltip}
-            aria-label={tooltip}
           >
             ?
           </span>

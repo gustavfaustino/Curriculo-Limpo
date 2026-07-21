@@ -1,4 +1,3 @@
-// src/lib/docx.js
 import { Document, HeadingLevel, Paragraph, TextRun } from "docx";
 import { clean, joinDate } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";

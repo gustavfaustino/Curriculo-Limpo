@@ -1,4 +1,3 @@
-// src/components/ui/Toggle.jsx
 import React from "react";
 
 export function Toggle({ label, checked, onChange }) {

@@ -1,4 +1,3 @@
-// src/components/resume/Empty.jsx
 import React from "react";
 
 export function Empty({ text }) {

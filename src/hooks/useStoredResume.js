@@ -1,4 +1,3 @@
-// src/hooks/useStoredResume.js
 import { useState, useEffect } from "react";
 import { STORAGE_KEY } from "../constants/data";
 

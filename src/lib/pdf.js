@@ -1,4 +1,3 @@
-// src/lib/pdf.js
 import { PDFDocument, PageSizes, rgb, StandardFonts } from "pdf-lib";
 import { clean, joinDate } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";

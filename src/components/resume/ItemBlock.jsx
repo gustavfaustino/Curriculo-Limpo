@@ -1,4 +1,3 @@
-// src/components/resume/ItemBlock.jsx
 import React from "react";
 
 export function ItemBlock({
