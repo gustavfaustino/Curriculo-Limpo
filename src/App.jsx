@@ -48,6 +48,13 @@ function App() {
   const contentRef = useRef(null);
   const t = TEXT[lang];
 
+  const exportLabels = {
+    word: t.generateWord,
+    pdf: t.generatePdf,
+  };
+
+  const buttonText = isBusy ? t.generating : exportLabels[exportType];
+
   // Configurações de SEO / Idioma Dinâmico
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -214,15 +221,11 @@ function App() {
     () => ({
       profile: !isFilled(resume.name) || !isFilled(resume.email),
       story: false,
-      work: resume.work.length > 0 && resume.work.some(workMissing),
-      education:
-        resume.education.length > 0 && resume.education.some(educationMissing),
+      work: resume.work.some(workMissing),
+      education: resume.education.some(educationMissing),
       skills: false,
-      languages:
-        resume.languages.length > 0 && resume.languages.some(languageMissing),
-      certificates:
-        resume.certificates.length > 0 &&
-        resume.certificates.some(certificateMissing),
+      languages: resume.languages.some(languageMissing),
+      certificates: resume.certificates.some(certificateMissing),
     }),
     [
       resume,
@@ -391,11 +394,7 @@ function App() {
               disabled={isBusy}
               className="min-h-[44px] rounded-md bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isBusy
-                ? t.generating
-                : exportType === "word"
-                  ? t.generateWord
-                  : t.generatePdf}
+              {buttonText}
             </button>
           </div>
         </div>
@@ -404,7 +403,7 @@ function App() {
       <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-8">
         {/* Menu Lateral transformado em Menu Sticky Mobile */}
         <aside className="sticky top-0 z-20 -mx-4 bg-black/90 px-4 py-3 backdrop-blur-xl lg:static lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-          <nav
+          <div
             role="tablist"
             aria-label="Seções do currículo"
             className="no-scrollbar flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid lg:pb-2"
@@ -437,7 +436,7 @@ function App() {
                 </span>
               </button>
             ))}
-          </nav>
+          </div>
         </aside>
 
         <div className="min-w-0" ref={contentRef}>
