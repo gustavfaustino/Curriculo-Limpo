@@ -355,9 +355,9 @@ function App() {
   }));
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100">
+    <div className="app-shell min-h-screen bg-black text-zinc-100">
       <header className="border-b border-purple-950/70 bg-black/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
+        <div className="header-container mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
           <div>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
               {t.appName}
@@ -366,7 +366,7 @@ function App() {
               {t.headline}
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="header-actions flex flex-wrap items-end gap-3">
             <Choice
               label={t.language}
               value={lang}
@@ -392,7 +392,7 @@ function App() {
               type="button"
               onClick={handleExport}
               disabled={isBusy}
-              className="min-h-[44px] rounded-md bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="export-btn min-h-[44px] rounded-md bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {buttonText}
             </button>
@@ -400,13 +400,13 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-8">
+      <main className="main-layout mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-8">
         {/* Menu Lateral transformado em Menu Sticky Mobile */}
-        <aside className="sticky top-0 z-20 -mx-4 bg-black/90 px-4 py-3 backdrop-blur-xl lg:static lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+        <aside className="nav-aside sticky top-0 z-20 bg-black/90 px-4 py-3 backdrop-blur-xl lg:static lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
           <div
             role="tablist"
             aria-label="Seções do currículo"
-            className="no-scrollbar flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid lg:pb-2"
+            className="nav-tablist no-scrollbar flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid lg:pb-2"
           >
             {TABS.map((tab, index) => (
               <button
@@ -417,7 +417,7 @@ function App() {
                 aria-selected={active === tab}
                 aria-controls={`section-${tab}`}
                 onClick={() => handleTabChange(tab)}
-                className={`flex min-h-[44px] snap-start shrink-0 items-center justify-between whitespace-nowrap rounded-md px-4 text-left text-sm transition md:w-full md:px-3 ${
+                className={`nav-tab-item flex min-h-[44px] snap-start shrink-0 items-center justify-between whitespace-nowrap rounded-md px-4 text-left text-sm transition md:w-full md:px-3 ${
                   active === tab
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
                     : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
@@ -487,7 +487,7 @@ function App() {
                 placeholder={t.placeholders.city}
               />
 
-              <fieldset className="grid gap-3 md:col-span-2 md:grid-cols-[180px_120px_1fr] md:items-end">
+              <fieldset className="phone-fieldset grid gap-3 md:col-span-2 md:grid-cols-[180px_120px_1fr] md:items-end">
                 <legend className="sr-only">
                   {t.sections.profile} - {t.fields.phone}
                 </legend>
@@ -962,7 +962,7 @@ function App() {
           </Section>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <aside className="sidebar-aside space-y-4 lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-300 transition-opacity">
               {isSaving ? t.savingState : t.saveState}
