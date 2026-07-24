@@ -5,7 +5,10 @@
     <img src="public/CurriculoLimpo-Logo.png" width="300" alt="Currículo Limpo Logo" />
     <br />
     <p><em>Uma aplicação web para montar currículos enxutos, legíveis e totalmente otimizados para filtros ATS (Applicant Tracking Systems).</em></p>
+    
+[![Acessar Aplicação](https://img.shields.io/badge/🚀_Acessar_O-Curr%C3%ADculo_Limpo-purple?style=for-the-badge)](https://curriculo-limpo.vercel.app/)
 </div>
+
 
 ---
 
