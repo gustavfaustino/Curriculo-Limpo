@@ -4,10 +4,12 @@ export function Field({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   type = "text",
   required = false,
   error = false,
+  errorMessage = "",
   tooltip = "",
   className = "",
 }) {
@@ -34,9 +36,15 @@ export function Field({
         type={type}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         placeholder={placeholder}
         aria-invalid={error || undefined}
       />
+      {errorMessage && (
+        <p role="alert" className="mt-2 text-xs text-red-300">
+          {errorMessage}
+        </p>
+      )}
     </label>
   );
 }

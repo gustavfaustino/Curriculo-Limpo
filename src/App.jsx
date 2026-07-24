@@ -10,7 +10,13 @@ import { Packer } from "docx";
 import { useStoredResume, BLANK } from "./hooks/useStoredResume";
 import { buildPdf } from "./lib/pdf";
 import { buildDocx } from "./lib/docx";
-import { createId, isFilled, joinDate, downloadFile } from "./utils/helpers";
+import {
+  createId,
+  isEmailValid,
+  isFilled,
+  joinDate,
+  downloadFile,
+} from "./utils/helpers";
 import {
   MONTHS,
   COUNTRIES,
@@ -92,11 +98,22 @@ function App() {
   const setRoot = useCallback(
     (field, value) => {
       setResume((current) => ({ ...current, [field]: value }));
-      if (field === "name" || field === "email") {
+      if (field === "name") {
         setErrors((current) => ({ ...current, [field]: false }));
+      }
+      if (field === "email") {
+        setErrors((current) => ({
+          ...current,
+          email: isFilled(value) && !isEmailValid(value),
+        }));
       }
     },
     [setResume],
+  );
+
+  const validateEmailField = useCallback(
+    (value) => isFilled(value) && !isEmailValid(value),
+    [],
   );
 
   const handleTabChange = (tab) => {
@@ -275,6 +292,8 @@ function App() {
     if (!isFilled(resume.email)) {
       missing.push(t.fields.email);
       nextErrors.email = true;
+    } else if (!isEmailValid(resume.email)) {
+      nextErrors.email = true;
     }
 
     setErrors(nextErrors);
@@ -283,6 +302,15 @@ function App() {
       setNotice({
         type: "error",
         message: `${t.validationMissing} ${missing.join(", ")}.`,
+      });
+      setActive("profile");
+      return;
+    }
+
+    if (nextErrors.email) {
+      setNotice({
+        type: "error",
+        message: `${t.validationInvalidEmail} ${t.fields.email}.`,
       });
       setActive("profile");
       return;
@@ -474,10 +502,17 @@ function App() {
                 label={t.fields.email}
                 value={resume.email}
                 onChange={(value) => setRoot("email", value)}
+                onBlur={() =>
+                  setErrors((current) => ({
+                    ...current,
+                    email: validateEmailField(resume.email),
+                  }))
+                }
                 placeholder={t.placeholders.email}
                 type="email"
                 required
                 error={errors.email}
+                errorMessage={errors.email ? t.validationInvalidEmail : ""}
                 tooltip={t.help?.email}
               />
               <Field

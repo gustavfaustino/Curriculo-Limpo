@@ -11,13 +11,27 @@ export const isFilled = (value) => {
   return !!value;
 };
 
+export const isEmailValid = (email) => {
+  const value = clean(email);
+  if (!value || value.includes(" ") || !value.includes("@")) return false;
+
+  const [localPart, domainPart, ...extraParts] = value.split("@");
+  if (extraParts.length > 0 || !localPart || !domainPart) return false;
+
+  const lastDotIndex = domainPart.lastIndexOf(".");
+  return lastDotIndex > 0 && lastDotIndex < domainPart.length - 1;
+};
+
 export const joinDate = (item, currentLabel) => {
   const start = item.startMonth && item.startYear ? `${item.startMonth}/${item.startYear}` : "";
-  const end = item.current || item.status === "doing"
-    ? currentLabel
-    : item.endMonth && item.endYear
-      ? `${item.endMonth}/${item.endYear}`
-      : "";
+  let end = "";
+
+  if (item.current || item.status === "doing") {
+    end = currentLabel;
+  } else if (item.endMonth && item.endYear) {
+    end = `${item.endMonth}/${item.endYear}`;
+  }
+
   return [start, end].filter(Boolean).join(" - ");
 };
 
