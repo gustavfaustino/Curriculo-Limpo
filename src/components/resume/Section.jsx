@@ -2,6 +2,7 @@ import React from "react";
 
 export function Section({ id, title, active, children }) {
   if (id !== active) return null;
+  // Conteúdo de uma seção do currículo.
   return (
     <section
       id={`section-${id}`}

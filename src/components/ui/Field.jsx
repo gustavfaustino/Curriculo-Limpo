@@ -13,6 +13,7 @@ export function Field({
   tooltip = "",
   className = "",
 }) {
+  // Campo de texto simples com validação visual.
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">

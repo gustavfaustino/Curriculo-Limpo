@@ -10,6 +10,7 @@ export function Choice({
   error = false,
   tooltip = "",
 }) {
+  // Seletor de uma opção em lista suspensa.
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">

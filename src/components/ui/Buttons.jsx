@@ -1,6 +1,7 @@
 import React from "react";
 
 export function AddButton({ children, onClick, ariaLabel }) {
+  // Botão para adicionar novos itens ao formulário.
   return (
     <button
       type="button"

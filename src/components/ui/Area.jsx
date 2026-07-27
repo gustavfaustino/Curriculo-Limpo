@@ -13,6 +13,7 @@ export function Area({
   onBlur,
   onFocus,
 }) {
+  // Campo de texto grande para descrições e resumos.
   return (
     <label className={`block ${className}`}>
       <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">

@@ -1,6 +1,7 @@
 import React from "react";
 
 export function Toggle({ label, checked, onChange }) {
+  // Alternância ligada ou desligada.
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-400">

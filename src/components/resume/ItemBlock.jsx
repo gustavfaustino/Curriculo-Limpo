@@ -7,6 +7,7 @@ export function ItemBlock({
   removeLabel,
   children,
 }) {
+  // Card para um item repetível como experiência ou certificado.
   return (
     <article className="rounded-md border border-zinc-800 bg-black/60 p-4">
       <div className="mb-4 flex items-start justify-between gap-4">

@@ -40,18 +40,27 @@ import { Empty } from "./components/resume/Empty";
 import { Metric } from "./components/resume/Metric";
 
 function App() {
+  // Estado principal do currículo.
   const [resume, setResume] = useStoredResume();
+  // Idioma ativo da interface.
   const [lang, setLang] = useState("pt");
+  // Aba visível no formulário.
   const [active, setActive] = useState("profile");
+  // Rascunho do campo de habilidades.
   const [skillsDraft, setSkillsDraft] = useState("");
   const [isEditingSkills, setIsEditingSkills] = useState(false);
+  // Tipo de exportação selecionado.
   const [exportType, setExportType] = useState("pdf");
+  // Mensagem global de status ou erro.
   const [notice, setNotice] = useState(null);
+  // Erros visuais dos campos principais.
   const [errors, setErrors] = useState({ name: false, email: false });
   const [isBusy, setIsBusy] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Área central usada para rolar até o formulário.
   const contentRef = useRef(null);
+  // Textos localizados da UI.
   const t = TEXT[lang];
 
   const exportLabels = {
@@ -61,19 +70,20 @@ function App() {
 
   const buttonText = isBusy ? t.generating : exportLabels[exportType];
 
-  // Configurações de SEO / Idioma Dinâmico
+  // Atualiza idioma do documento e título da página.
   useEffect(() => {
     document.documentElement.lang = lang;
     document.title = `${t.appName} | ${t.sections[active]}`;
   }, [lang, active, t]);
 
-  // Indicador de salvamento animado
+  // Indicador visual de salvamento.
   useEffect(() => {
     setIsSaving(true);
     const timer = setTimeout(() => setIsSaving(false), 800);
     return () => clearTimeout(timer);
   }, [resume]);
 
+  // Ajuda contextual do telefone conforme o país.
   const phoneHint = useMemo(() => {
     const hint = PHONE_HINTS[resume.country] || PHONE_HINTS.default;
     return {
@@ -89,12 +99,14 @@ function App() {
     t.placeholders.phone,
   ]);
 
+  // Sincroniza o rascunho de habilidades com o currículo salvo.
   useEffect(() => {
     if (!isEditingSkills) {
       setSkillsDraft((resume.skills || []).join(", "));
     }
   }, [resume.skills, isEditingSkills]);
 
+  // Atualiza campos simples do topo do currículo.
   const setRoot = useCallback(
     (field, value) => {
       setResume((current) => ({ ...current, [field]: value }));
@@ -116,6 +128,7 @@ function App() {
     [],
   );
 
+  // Troca de seção pelo menu lateral.
   const handleTabChange = (tab) => {
     setActive(tab);
     if (window.innerWidth < 1024 && contentRef.current) {
@@ -204,6 +217,7 @@ function App() {
     setRoot("skills", skills);
   };
 
+  // Validação da seção de experiência.
   const workMissing = useCallback((item) => {
     const required = [item.position, item.company];
     return required.some((field) => !isFilled(field));
@@ -234,6 +248,7 @@ function App() {
     [],
   );
 
+  // Marca as seções que ainda têm campos pendentes.
   const sectionWarnings = useMemo(
     () => ({
       profile: !isFilled(resume.name) || !isFilled(resume.email),
@@ -253,6 +268,7 @@ function App() {
     ],
   );
 
+  // Pontuação resumida do currículo.
   const score = useMemo(() => {
     const checks = [
       resume.name,
@@ -266,6 +282,7 @@ function App() {
     return checks.filter(Boolean).length;
   }, [resume]);
 
+  // Limpa todos os dados do currículo.
   const handleClear = () => {
     if (window.confirm(t.confirmClear)) {
       setResume(BLANK);
@@ -282,6 +299,7 @@ function App() {
     }
   };
 
+  // Valida os campos e executa a exportação.
   const handleExport = async () => {
     const missing = [];
     const nextErrors = { name: false, email: false };
@@ -384,6 +402,7 @@ function App() {
 
   return (
     <div className="app-shell min-h-screen bg-black text-zinc-100">
+      {/* Cabeçalho com título, idioma e exportação. */}
       <header className="border-b border-purple-950/70 bg-black/90 backdrop-blur">
         <div className="header-container mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
           <div>
@@ -428,8 +447,9 @@ function App() {
         </div>
       </header>
 
+      {/* Layout principal: navegação, formulário e painel lateral. */}
       <main className="main-layout mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-8">
-        {/* Menu Lateral transformado em Menu Sticky Mobile */}
+        {/* Menu das seções do currículo. */}
         <aside className="nav-aside sticky top-0 z-20 bg-black/90 px-4 py-3 backdrop-blur-xl lg:static lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
           <div
             role="tablist"
@@ -468,6 +488,7 @@ function App() {
         </aside>
 
         <div className="min-w-0" ref={contentRef}>
+          {/* Avisos de validação e status. */}
           {notice && (
             <div
               role="alert"
@@ -482,8 +503,10 @@ function App() {
             </div>
           )}
 
+          {/* Contato e dados principais. */}
           <Section id="profile" active={active} title={t.sections.profile}>
             <div className="grid gap-4 md:grid-cols-2">
+              {/* Nome completo. */}
               <Field
                 label={t.fields.name}
                 value={resume.name}
@@ -492,12 +515,14 @@ function App() {
                 required
                 error={errors.name}
               />
+              {/* Cargo alvo. */}
               <Field
                 label={t.fields.role}
                 value={resume.role}
                 onChange={(value) => setRoot("role", value)}
                 placeholder={t.placeholders.role}
               />
+              {/* Email principal de contato. */}
               <Field
                 label={t.fields.email}
                 value={resume.email}
@@ -515,6 +540,7 @@ function App() {
                 errorMessage={errors.email ? t.validationInvalidEmail : ""}
                 tooltip={t.help?.email}
               />
+              {/* Cidade e localização. */}
               <Field
                 label={t.fields.city}
                 value={resume.city}
@@ -551,6 +577,7 @@ function App() {
               </fieldset>
             </div>
 
+            {/* Links profissionais. */}
             <div className="mt-6 space-y-3">
               {resume.links.length === 0 && <Empty text={t.empty} />}
               {resume.links.map((item) => (
@@ -593,6 +620,7 @@ function App() {
             </div>
           </Section>
 
+          {/* Resumo profissional. */}
           <Section id="story" active={active} title={t.sections.story}>
             <Area
               label={t.fields.summary}
@@ -603,6 +631,7 @@ function App() {
             />
           </Section>
 
+          {/* Experiência profissional. */}
           <Section id="work" active={active} title={t.sections.work}>
             <div className="space-y-4">
               {resume.work.length === 0 && <Empty text={t.empty} />}
@@ -724,6 +753,7 @@ function App() {
             </div>
           </Section>
 
+          {/* Formação acadêmica. */}
           <Section id="education" active={active} title={t.sections.education}>
             <div className="space-y-4">
               {resume.education.length === 0 && <Empty text={t.empty} />}
@@ -840,6 +870,7 @@ function App() {
             </div>
           </Section>
 
+          {/* Habilidades. */}
           <Section id="skills" active={active} title={t.sections.skills}>
             <p className="mb-2 text-xs text-zinc-500">{t.skillsInstruction}</p>
             <Area
@@ -866,6 +897,7 @@ function App() {
             </div>
           </Section>
 
+          {/* Idiomas. */}
           <Section id="languages" active={active} title={t.sections.languages}>
             <div className="space-y-4">
               {resume.languages.length === 0 && <Empty text={t.empty} />}
@@ -908,6 +940,7 @@ function App() {
             </div>
           </Section>
 
+          {/* Certificados e cursos. */}
           <Section
             id="certificates"
             active={active}
@@ -997,6 +1030,7 @@ function App() {
           </Section>
         </div>
 
+        {/* Painel lateral com score e dicas. */}
         <aside className="sidebar-aside space-y-4 lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-300 transition-opacity">
