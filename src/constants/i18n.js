@@ -97,6 +97,14 @@ export const TEXT = {
         incompleteSection: "Seção incompleta",
         scoreTooltip: "Pontos baseados em: Nome, Email, Cargo, Resumo, Experiência, Formação e Habilidades",
         skillsInstruction: "Dica: Separe as habilidades por vírgula ou Enter.",
+        sectionHelp: {
+            profile: "Campos marcados com (*) são obrigatórios.",
+            links: "Adicione links profissionais como LinkedIn, GitHub, portfólio, site pessoal ou outras informações de contato relevantes. Ex: https://linkedin.com/in/seu-perfil",
+            work: "Inclua experiências profissionais relevantes, estágios, trabalhos voluntários ou projetos práticos com cargo, empresa e resultados.",
+            education: "Informe sua formação principal, cursos técnicos, graduação ou pós-graduação com instituição e período.",
+            languages: "Liste idiomas que você consegue usar em contexto profissional e selecione o nível mais fiel.",
+            certificates: "Adicione cursos, certificados e validações que reforcem seu perfil para a vaga. Ex: AWS, Alura, Coursera ou certificados internos.",
+        },
         sections: {
             profile: "Contato",
             story: "Resumo",
@@ -239,6 +247,14 @@ export const TEXT = {
         incompleteSection: "Incomplete section",
         scoreTooltip: "Score based on: Name, Email, Role, Summary, Experience, Education and Skills",
         skillsInstruction: "Tip: Separate skills with a comma or Enter.",
+        sectionHelp: {
+            profile: "Fields marked with (*) are required.",
+            links: "Add professional links such as LinkedIn, GitHub, portfolio, personal website or other relevant contact information. Example: https://linkedin.com/in/your-profile",
+            work: "Add relevant work experience, internships, volunteer work or practical projects with role, company and results.",
+            education: "Add your main education, technical courses, degree or postgraduate studies with institution and period.",
+            languages: "List languages you can use in a professional context and select the most accurate level.",
+            certificates: "Add courses, certificates and validations that strengthen your fit for the role. Example: AWS, Coursera or internal certificates.",
+        },
         sections: {
             profile: "Contact",
             story: "Summary",
@@ -381,6 +397,14 @@ export const TEXT = {
         incompleteSection: "Sección incompleta",
         scoreTooltip: "Puntos basados en: Nombre, Email, Cargo, Resumen, Experiencia, Formación y Habilidades",
         skillsInstruction: "Consejo: Separe las habilidades con una coma o Enter.",
+        sectionHelp: {
+            profile: "Los campos marcados con (*) son obligatorios.",
+            links: "Agrega enlaces profesionales como LinkedIn, GitHub, portafolio, sitio personal u otra información de contacto relevante. Ej: https://linkedin.com/in/tu-perfil",
+            work: "Incluye experiencias laborales relevantes, pasantías, voluntariado o proyectos prácticos con cargo, empresa y resultados.",
+            education: "Informa tu formación principal, cursos técnicos, grado o posgrado con institución y período.",
+            languages: "Lista idiomas que puedes usar en contexto profesional y selecciona el nivel más fiel.",
+            certificates: "Agrega cursos, certificados y validaciones que refuercen tu perfil para la vacante. Ej: AWS, Coursera o certificados internos.",
+        },
         sections: {
             profile: "Contacto",
             story: "Resumen",
@@ -450,6 +474,7 @@ export const TEXT = {
             proof: "Ej: https://...",
             notes: "Resumen del curso o aprendizaje principal.",
             languageName: "Ej: Ingles",
+            level: "Ej: Intermedio",
             skills: "React, SQL, Liderazgo, Analisis de datos",
         },
         help: {
@@ -494,3 +519,4 @@ export const TEXT = {
         ],
     },
 };
+

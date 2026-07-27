@@ -504,7 +504,12 @@ function App() {
           )}
 
           {/* Contato e dados principais. */}
-          <Section id="profile" active={active} title={t.sections.profile}>
+          <Section
+            id="profile"
+            active={active}
+            title={t.sections.profile}
+            description={t.sectionHelp?.profile}
+          >
             <div className="grid gap-4 md:grid-cols-2">
               {/* Nome completo. */}
               <Field
@@ -579,6 +584,9 @@ function App() {
 
             {/* Links profissionais. */}
             <div className="mt-6 space-y-3">
+              <p className="text-sm leading-6 text-zinc-400">
+                {t.sectionHelp?.links}
+              </p>
               {resume.links.length === 0 && <Empty text={t.empty} />}
               {resume.links.map((item) => (
                 <ItemBlock
@@ -634,6 +642,9 @@ function App() {
           {/* Experiência profissional. */}
           <Section id="work" active={active} title={t.sections.work}>
             <div className="space-y-4">
+              <p className="text-sm leading-6 text-zinc-400">
+                {t.sectionHelp?.work}
+              </p>
               {resume.work.length === 0 && <Empty text={t.empty} />}
               {resume.work.map((item) => {
                 const workRequired = true;
@@ -756,6 +767,9 @@ function App() {
           {/* Formação acadêmica. */}
           <Section id="education" active={active} title={t.sections.education}>
             <div className="space-y-4">
+              <p className="text-sm leading-6 text-zinc-400">
+                {t.sectionHelp?.education}
+              </p>
               {resume.education.length === 0 && <Empty text={t.empty} />}
               {resume.education.map((item) => {
                 const educationRequired = true;
@@ -900,6 +914,9 @@ function App() {
           {/* Idiomas. */}
           <Section id="languages" active={active} title={t.sections.languages}>
             <div className="space-y-4">
+              <p className="text-sm leading-6 text-zinc-400">
+                {t.sectionHelp?.languages}
+              </p>
               {resume.languages.length === 0 && <Empty text={t.empty} />}
               {resume.languages.map((item) => (
                 <ItemBlock
@@ -947,6 +964,9 @@ function App() {
             title={t.sections.certificates}
           >
             <div className="space-y-4">
+              <p className="text-sm leading-6 text-zinc-400">
+                {t.sectionHelp?.certificates}
+              </p>
               {resume.certificates.length === 0 && <Empty text={t.empty} />}
               {resume.certificates.map((item) => {
                 const certificateRequired = true;
@@ -1075,3 +1095,4 @@ function App() {
 }
 
 export default App;
+
