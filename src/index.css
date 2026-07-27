@@ -58,14 +58,8 @@
   }
 
   .header-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-    gap: 0.75rem;
-  }
-
-  .header-actions .export-btn {
-    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
     width: 100%;
   }
 
@@ -74,9 +68,9 @@
     flex-direction: column;
     gap: 1.5rem;
     padding-top: 0;
+    padding-bottom: 6rem;
   }
 
-  /* Container da nav com suporte a degradê lateral */
   .nav-aside {
     position: sticky;
     top: 0;
@@ -84,37 +78,36 @@
     margin-left: -1rem;
     margin-right: -1rem;
     padding: 0.75rem 1rem;
-    background-color: rgba(0, 0, 0, 0.92);
+    background-color: rgba(0, 0, 0, 0.94);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(63, 63, 70, 0.5);
+    border-bottom: 1px solid rgba(126, 34, 206, 0.38);
   }
 
-  /* Aplica uma máscara transparente na borda direita para criar o fade visual */
   .nav-tablist {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-right: 2rem !important; /* Garante que o item do canto fique cortado */
-    -webkit-overflow-scrolling: touch;
-
-    /* Efeito de desvanecimento na borda direita */
-    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
-    mask-image: linear-gradient(to right, black 85%, transparent 100%);
-  }
-
-  /* Oculta a scrollbar nativa para manter o degradê limpo */
-  .nav-tablist::-webkit-scrollbar {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+    overflow: visible;
+    padding: 0.5rem !important;
+    white-space: normal;
   }
 
   .nav-tab-item {
-    flex: 0 0 auto;
-    min-width: max-content;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    min-width: 0;
+    min-height: 42px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .wizard-label {
+    display: none;
+  }
+
+  .wizard-dot {
+    height: 2rem;
+    width: 2rem;
+    font-size: 0.75rem;
   }
 
   .phone-fieldset {
@@ -128,3 +121,4 @@
     margin-top: 1rem;
   }
 }
+

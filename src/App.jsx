@@ -46,6 +46,7 @@ function App() {
   const [lang, setLang] = useState("pt");
   // Aba visível no formulário.
   const [active, setActive] = useState("profile");
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState(0);
   // Rascunho do campo de habilidades.
   const [skillsDraft, setSkillsDraft] = useState("");
   const [isEditingSkills, setIsEditingSkills] = useState(false);
@@ -128,12 +129,30 @@ function App() {
     [],
   );
 
-  // Troca de seção pelo menu lateral.
-  const handleTabChange = (tab) => {
-    setActive(tab);
+  const scrollToForm = useCallback(() => {
     if (window.innerWidth < 1024 && contentRef.current) {
       contentRef.current.scrollIntoView({ behavior: "smooth" });
     }
+  }, []);
+
+  const goToStep = useCallback(
+    (tab, forceUnlock = false) => {
+      const stepIndex = TABS.indexOf(tab);
+      if (stepIndex < 0) return;
+      if (!forceUnlock && stepIndex > maxUnlockedStep) return;
+
+      if (forceUnlock) {
+        setMaxUnlockedStep((current) => Math.max(current, stepIndex));
+      }
+      setActive(tab);
+      scrollToForm();
+    },
+    [maxUnlockedStep, scrollToForm],
+  );
+
+  // Troca de seção pelo menu lateral respeitando o desbloqueio do wizard.
+  const handleTabChange = (tab) => {
+    goToStep(tab);
   };
 
   const addItem = useCallback(
@@ -248,16 +267,22 @@ function App() {
     [],
   );
 
-  // Marca as seções que ainda têm campos pendentes.
-  const sectionWarnings = useMemo(
+  const sectionCompletion = useMemo(
     () => ({
-      profile: !isFilled(resume.name) || !isFilled(resume.email),
-      story: false,
-      work: resume.work.some(workMissing),
-      education: resume.education.some(educationMissing),
-      skills: false,
-      languages: resume.languages.some(languageMissing),
-      certificates: resume.certificates.some(certificateMissing),
+      profile:
+        isFilled(resume.name) &&
+        isFilled(resume.email) &&
+        isEmailValid(resume.email),
+      story: isFilled(resume.summary),
+      work: resume.work.length > 0 && !resume.work.some(workMissing),
+      education:
+        resume.education.length > 0 && !resume.education.some(educationMissing),
+      skills: resume.skills.length > 0,
+      languages:
+        resume.languages.length > 0 && !resume.languages.some(languageMissing),
+      certificates:
+        resume.certificates.length > 0 &&
+        !resume.certificates.some(certificateMissing),
     }),
     [
       resume,
@@ -266,6 +291,33 @@ function App() {
       certificateMissing,
       languageMissing,
     ],
+  );
+
+  useEffect(() => {
+    const nextUnlockedStep = TABS.reduce((highest, tab, index) => {
+      if (index > highest) return highest;
+      return sectionCompletion[tab]
+        ? Math.min(index + 1, TABS.length - 1)
+        : highest;
+    }, 0);
+
+    setMaxUnlockedStep((current) => Math.max(current, nextUnlockedStep));
+  }, [sectionCompletion]);
+
+  const wizardStatuses = useMemo(
+    () =>
+      TABS.reduce((statusMap, tab, index) => {
+        if (index > maxUnlockedStep) {
+          statusMap[tab] = "pending";
+        } else if (sectionCompletion[tab]) {
+          statusMap[tab] = "complete";
+        } else {
+          statusMap[tab] = "incomplete";
+        }
+
+        return statusMap;
+      }, {}),
+    [maxUnlockedStep, sectionCompletion],
   );
 
   // Pontuação resumida do currículo.
@@ -289,6 +341,7 @@ function App() {
       setSkillsDraft("");
       setErrors({ name: false, email: false });
       setActive("profile");
+      setMaxUnlockedStep(0);
       setNotice({ type: "success", message: t.cleared });
 
       if (contentRef.current) {
@@ -321,7 +374,7 @@ function App() {
         type: "error",
         message: `${t.validationMissing} ${missing.join(", ")}.`,
       });
-      setActive("profile");
+      goToStep("profile", true);
       return;
     }
 
@@ -330,7 +383,7 @@ function App() {
         type: "error",
         message: `${t.validationInvalidEmail} ${t.fields.email}.`,
       });
-      setActive("profile");
+      goToStep("profile", true);
       return;
     }
 
@@ -352,7 +405,7 @@ function App() {
         type: "error",
         message: `${t.validationSections} ${missingSections.map((item) => item.label).join(", ")}.`,
       });
-      setActive(missingSections[0].id);
+      goToStep(missingSections[0].id, true);
       return;
     }
 
@@ -400,6 +453,23 @@ function App() {
     label: entry[lang],
   }));
 
+  const activeStepIndex = TABS.indexOf(active);
+  const isFirstStep = activeStepIndex <= 0;
+  const isLastStep = activeStepIndex === TABS.length - 1;
+  const canShowExport = maxUnlockedStep >= TABS.length - 1;
+
+  const handleWizardBack = () => {
+    if (isFirstStep) return;
+    goToStep(TABS[activeStepIndex - 1], true);
+  };
+
+  const handleWizardNext = () => {
+    if (isLastStep) return;
+
+    const nextStep = TABS[activeStepIndex + 1];
+    goToStep(nextStep, true);
+  };
+
   return (
     <div className="app-shell min-h-screen bg-black text-zinc-100">
       {/* Cabeçalho com título, idioma e exportação. */}
@@ -425,24 +495,6 @@ function App() {
               ]}
               className="w-28"
             />
-            <Choice
-              label={t.exportType}
-              value={exportType}
-              onChange={setExportType}
-              options={[
-                { value: "pdf", label: t.exportPdf },
-                { value: "word", label: t.exportWord },
-              ]}
-              className="w-28"
-            />
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={isBusy}
-              className="export-btn min-h-[44px] rounded-md bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {buttonText}
-            </button>
           </div>
         </div>
       </header>
@@ -456,34 +508,62 @@ function App() {
             aria-label="Seções do currículo"
             className="nav-tablist no-scrollbar flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid lg:pb-2"
           >
-            {TABS.map((tab, index) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                id={`tab-${tab}`}
-                aria-selected={active === tab}
-                aria-controls={`section-${tab}`}
-                onClick={() => handleTabChange(tab)}
-                className={`nav-tab-item flex min-h-[44px] snap-start shrink-0 items-center justify-between whitespace-nowrap rounded-md px-4 text-left text-sm transition md:w-full md:px-3 ${
-                  active === tab
-                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <span>{t.sections[tab]}</span>
-                  {sectionWarnings[tab] && (
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500/20 text-[10px] font-semibold text-yellow-200">
-                      <span className="sr-only">{t.incompleteSection}</span>!
+            {TABS.map((tab, index) => {
+              const stepStatus = wizardStatuses[tab];
+              const isLocked = index > maxUnlockedStep;
+              const isActive = active === tab;
+
+              // Lógica do indicador numérico (extraída do ternário aninhado)
+              let dotClass = "border-zinc-700 bg-zinc-950 text-zinc-500";
+              if (isActive) {
+                dotClass =
+                  "border-purple-300 bg-purple-500 text-white shadow-lg shadow-purple-700/50";
+              } else if (stepStatus === "complete") {
+                dotClass = "border-purple-300 bg-purple-300 text-black";
+              } else if (stepStatus === "incomplete") {
+                dotClass = "border-purple-500 bg-purple-950 text-purple-100";
+              }
+
+              // Lógica do estilo do botão (extraída do ternário aninhado)
+              let buttonStatusClass =
+                "border-transparent text-zinc-400 hover:border-purple-900/70 hover:bg-zinc-900 hover:text-zinc-100";
+              if (isActive) {
+                buttonStatusClass =
+                  "border-purple-500 bg-purple-950/70 text-white";
+              } else if (isLocked) {
+                buttonStatusClass = "border-transparent text-zinc-600";
+              }
+
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  id={`tab-${tab}`}
+                  aria-selected={isActive}
+                  aria-controls={`section-${tab}`}
+                  onClick={() => handleTabChange(tab)}
+                  disabled={isLocked}
+                  aria-disabled={isLocked}
+                  className={`nav-tab-item flex min-h-[48px] snap-start shrink-0 items-center gap-3 rounded-md border px-3 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-50 md:w-full ${buttonStatusClass}`}
+                >
+                  <span
+                    className={`wizard-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${dotClass}`}
+                    aria-hidden="true"
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="wizard-label min-w-0 flex-1">
+                    <span className="block truncate font-semibold">
+                      {t.sections[tab]}
                     </span>
-                  )}
-                </span>
-                <span className="ml-3 text-xs opacity-70 hidden lg:inline-block">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-              </button>
-            ))}
+                    <span className="block text-xs text-purple-300/80">
+                      {t.wizard[stepStatus]}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </aside>
 
@@ -1048,10 +1128,62 @@ function App() {
               </AddButton>
             </div>
           </Section>
+
+          <div className="desktop-wizard-actions mt-5 hidden flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-950/80 p-4 lg:flex lg:flex-row lg:items-center lg:justify-between">
+            <button
+              type="button"
+              onClick={handleWizardBack}
+              disabled={isFirstStep}
+              className="min-h-[42px] rounded-md border border-zinc-700 px-4 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {t.wizard.back}
+            </button>
+            <span className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              {t.wizard.step} {activeStepIndex + 1}/{TABS.length}
+            </span>
+            <button
+              type="button"
+              onClick={handleWizardNext}
+              disabled={isLastStep}
+              className="min-h-[42px] rounded-md bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {t.wizard.next}
+            </button>
+          </div>
         </div>
 
         {/* Painel lateral com score e dicas. */}
         <aside className="sidebar-aside space-y-4 lg:sticky lg:top-6 lg:self-start">
+          {canShowExport && (
+            <div className="rounded-lg border border-purple-500/80 bg-purple-950/50 p-4 shadow-2xl shadow-purple-950/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-200">
+                {t.generate}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-zinc-200">
+                {t.wizard.exportReady}
+              </p>
+              <div className="mt-4 grid gap-3">
+                <Choice
+                  label={t.exportType}
+                  value={exportType}
+                  onChange={setExportType}
+                  options={[
+                    { value: "pdf", label: t.exportPdf },
+                    { value: "word", label: t.exportWord },
+                  ]}
+                />
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={isBusy}
+                  className="min-h-[46px] rounded-md bg-purple-500 px-5 text-sm font-bold text-white shadow-lg shadow-purple-900/60 transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {buttonText}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-300 transition-opacity">
               {isSaving ? t.savingState : t.saveState}
@@ -1090,9 +1222,32 @@ function App() {
           </div>
         </aside>
       </main>
+
+      <div className="mobile-wizard-bar fixed inset-x-0 bottom-0 z-50 border-t border-purple-900/70 bg-black/95 px-4 py-3 shadow-2xl shadow-purple-950/60 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <button
+            type="button"
+            onClick={handleWizardBack}
+            disabled={isFirstStep}
+            className="min-h-[44px] rounded-md border border-purple-800/70 px-4 text-sm font-semibold text-purple-100 transition hover:border-purple-500 hover:bg-purple-950/50 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {t.wizard.back}
+          </button>
+          <span className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
+            {activeStepIndex + 1}/{TABS.length}
+          </span>
+          <button
+            type="button"
+            onClick={handleWizardNext}
+            disabled={isLastStep}
+            className="min-h-[44px] rounded-md bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {t.wizard.next}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default App;
-
