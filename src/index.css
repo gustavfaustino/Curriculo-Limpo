@@ -58,14 +58,8 @@
   }
 
   .header-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-    gap: 0.75rem;
-  }
-
-  .header-actions .export-btn {
-    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
     width: 100%;
   }
 
@@ -74,47 +68,92 @@
     flex-direction: column;
     gap: 1.5rem;
     padding-top: 0;
+    padding-bottom: 6rem;
   }
 
-  /* Container da nav com suporte a degradê lateral */
   .nav-aside {
     position: sticky;
     top: 0;
     z-index: 50;
     margin-left: -1rem;
     margin-right: -1rem;
-    padding: 0.75rem 1rem;
-    background-color: rgba(0, 0, 0, 0.92);
+    padding: 0.75rem 0.75rem;
+    background-color: rgba(0, 0, 0, 0.94);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(63, 63, 70, 0.5);
+    border-bottom: 1px solid rgba(126, 34, 206, 0.38);
   }
 
-  /* Aplica uma máscara transparente na borda direita para criar o fade visual */
+  /* Troca o Grid rígido por Flex com rolagem horizontal */
   .nav-tablist {
     display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
     overflow-x: auto;
-    white-space: nowrap;
-    padding-right: 2rem !important; /* Garante que o item do canto fique cortado */
+    scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-
-    /* Efeito de desvanecimento na borda direita */
-    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
-    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    gap: 0.5rem;
+    padding: 0.35rem !important;
   }
 
-  /* Oculta a scrollbar nativa para manter o degradê limpo */
-  .nav-tablist::-webkit-scrollbar {
-    display: none;
-  }
-
+  /* Garante largura mínima individual e área de toque acessível */
   .nav-tab-item {
-    flex: 0 0 auto;
-    min-width: max-content;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    flex: 0 0 auto; /* Impede que o flex encolha o botão */
+    scroll-snap-align: center;
+    min-width: 80px; /* Espaço suficiente para o texto sem encostar no vizinho */
+    min-height: 56px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.35rem 0.25rem;
+    text-align: center;
+  }
+
+  /* Estilização da barra de rolagem visível para mobile */
+  .nav-tablist::-webkit-scrollbar {
+    display: block;
+    height: 4px; /* Barra fina e discreta na parte inferior */
+  }
+
+  .nav-tablist::-webkit-scrollbar-track {
+    background: rgba(24, 24, 27, 0.6); /* Zinc-900 */
+    border-radius: 9999px;
+  }
+
+  .nav-tablist::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.5); /* Purple-500 com transparência */
+    border-radius: 9999px;
+  }
+
+  .nav-tablist::-webkit-scrollbar-thumb:hover {
+    background: rgba(168, 85, 247, 0.8);
+  }
+
+  /* Suporte para Firefox */
+  .nav-tablist {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 85, 247, 0.5) rgba(24, 24, 27, 0.6);
+  }
+
+  .wizard-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+
+  .wizard-label > span:first-child {
+    font-size: 0.7rem; /* ~11px */
+    line-height: 1.2;
+    font-weight: 600;
+    white-space: nowrap; /* Evita quebras estranhas na mesma palavra */
+    text-align: center;
+  }
+
+  .wizard-dot {
+    height: 1.75rem; /* 28px */
+    width: 1.75rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
   }
 
   .phone-fieldset {
