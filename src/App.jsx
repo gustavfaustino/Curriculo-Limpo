@@ -84,6 +84,18 @@ function App() {
     return () => clearTimeout(timer);
   }, [resume]);
 
+  // Efeito para centralizar a aba ativa no scroll horizontal (Mobile)
+  useEffect(() => {
+    const activeTabElement = document.getElementById(`tab-${active}`);
+    if (activeTabElement) {
+      activeTabElement.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [active]);
+
   // Ajuda contextual do telefone conforme o país.
   const phoneHint = useMemo(() => {
     const hint = PHONE_HINTS[resume.country] || PHONE_HINTS.default;
@@ -506,14 +518,14 @@ function App() {
           <div
             role="tablist"
             aria-label="Seções do currículo"
-            className="nav-tablist no-scrollbar flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid lg:pb-2"
+            className="nav-tablist flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid md:grid-cols-1 lg:pb-2"
           >
             {TABS.map((tab, index) => {
               const stepStatus = wizardStatuses[tab];
               const isLocked = index > maxUnlockedStep;
               const isActive = active === tab;
 
-              // Lógica do indicador numérico (extraída do ternário aninhado)
+              // Lógica do indicador numérico
               let dotClass = "border-zinc-700 bg-zinc-950 text-zinc-500";
               if (isActive) {
                 dotClass =
@@ -524,7 +536,7 @@ function App() {
                 dotClass = "border-purple-500 bg-purple-950 text-purple-100";
               }
 
-              // Lógica do estilo do botão (extraída do ternário aninhado)
+              // Lógica do estilo do botão
               let buttonStatusClass =
                 "border-transparent text-zinc-400 hover:border-purple-900/70 hover:bg-zinc-900 hover:text-zinc-100";
               if (isActive) {
@@ -545,19 +557,20 @@ function App() {
                   onClick={() => handleTabChange(tab)}
                   disabled={isLocked}
                   aria-disabled={isLocked}
-                  className={`nav-tab-item flex min-h-[48px] snap-start shrink-0 items-center gap-3 rounded-md border px-3 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-50 md:w-full ${buttonStatusClass}`}
+                  className={`nav-tab-item flex snap-start shrink-0 min-w-[80px] flex-col items-center justify-center gap-1.5 rounded-md border p-2 text-center transition disabled:cursor-not-allowed disabled:opacity-50 md:min-w-0 md:w-full md:flex-row md:items-center md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-left ${buttonStatusClass}`}
                 >
                   <span
-                    className={`wizard-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${dotClass}`}
+                    className={`wizard-dot flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold md:h-8 md:w-8 ${dotClass}`}
                     aria-hidden="true"
                   >
                     {index + 1}
                   </span>
-                  <span className="wizard-label min-w-0 flex-1">
-                    <span className="block truncate font-semibold">
+
+                  <span className="wizard-label flex min-w-0 flex-1 flex-col items-center md:items-start">
+                    <span className="block max-w-[85px] truncate text-xs font-semibold leading-tight md:max-w-none md:text-sm">
                       {t.sections[tab]}
                     </span>
-                    <span className="block text-xs text-purple-300/80">
+                    <span className="hidden text-[10px] text-purple-300/80 md:block md:text-xs">
                       {t.wizard[stepStatus]}
                     </span>
                   </span>
