@@ -1,4 +1,5 @@
 import React from "react";
+import { Infotip } from "./Infotip";
 
 export function Choice({
   label,
@@ -16,14 +17,7 @@ export function Choice({
       <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
         <span>{label}</span>
         {required && <span className="ml-1 text-red-400">*</span>}
-        {tooltip && (
-          <span
-            className="ml-2 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-zinc-500/80 text-[10px] text-zinc-200 cursor-help"
-            title={tooltip}
-          >
-            ?
-          </span>
-        )}
+        {tooltip && <Infotip text={tooltip} label={`${label}: ajuda`} />}
       </span>
 
       <div className="relative w-full">

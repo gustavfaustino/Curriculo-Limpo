@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, {
   useCallback,
   useEffect,
@@ -14,8 +13,10 @@ import {
   createId,
   isEmailValid,
   isFilled,
+  isUrlValid,
   joinDate,
   downloadFile,
+  sanitizeUrlDisplay,
 } from "./utils/helpers";
 import {
   MONTHS,
@@ -84,18 +85,6 @@ function App() {
     return () => clearTimeout(timer);
   }, [resume]);
 
-  // Efeito para centralizar a aba ativa no scroll horizontal (Mobile)
-  useEffect(() => {
-    const activeTabElement = document.getElementById(`tab-${active}`);
-    if (activeTabElement) {
-      activeTabElement.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
-  }, [active]);
-
   // Ajuda contextual do telefone conforme o país.
   const phoneHint = useMemo(() => {
     const hint = PHONE_HINTS[resume.country] || PHONE_HINTS.default;
@@ -141,25 +130,28 @@ function App() {
     [],
   );
 
-  const scrollToForm = useCallback(() => {
-    if (window.innerWidth < 1024 && contentRef.current) {
-      contentRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }, []);
 
   const goToStep = useCallback(
     (tab, forceUnlock = false) => {
       const stepIndex = TABS.indexOf(tab);
+
       if (stepIndex < 0) return;
       if (!forceUnlock && stepIndex > maxUnlockedStep) return;
 
       if (forceUnlock) {
         setMaxUnlockedStep((current) => Math.max(current, stepIndex));
       }
+
       setActive(tab);
-      scrollToForm();
+      scrollToTop();
     },
-    [maxUnlockedStep, scrollToForm],
+    [maxUnlockedStep, scrollToTop],
   );
 
   // Troca de seção pelo menu lateral respeitando o desbloqueio do wizard.
@@ -254,6 +246,11 @@ function App() {
     return required.some((field) => !isFilled(field));
   }, []);
 
+  const linkMissing = useCallback(
+    (item) => !isFilled(item.url) || !isUrlValid(item.url),
+    [],
+  );
+
   const educationMissing = useCallback((item) => {
     const required = [
       item.type,
@@ -285,6 +282,7 @@ function App() {
         isFilled(resume.name) &&
         isFilled(resume.email) &&
         isEmailValid(resume.email),
+      links: resume.links.length > 0 && !resume.links.some(linkMissing),
       story: isFilled(resume.summary),
       work: resume.work.length > 0 && !resume.work.some(workMissing),
       education:
@@ -302,6 +300,7 @@ function App() {
       educationMissing,
       certificateMissing,
       languageMissing,
+      linkMissing,
     ],
   );
 
@@ -367,6 +366,7 @@ function App() {
   // Valida os campos e executa a exportação.
   const handleExport = async () => {
     const missing = [];
+    const missingSections = [];
     const nextErrors = { name: false, email: false };
     if (!isFilled(resume.name)) {
       missing.push(t.fields.name);
@@ -375,7 +375,14 @@ function App() {
     if (!isFilled(resume.email)) {
       missing.push(t.fields.email);
       nextErrors.email = true;
-    } else if (!isEmailValid(resume.email)) {
+    }
+    if (resume.links.some(linkMissing)) {
+      missingSections.push({
+        id: "profile",
+        label: t.fields.linkUrl,
+      });
+    }
+    if (!isEmailValid(resume.email)) {
       nextErrors.email = true;
     }
 
@@ -399,7 +406,6 @@ function App() {
       return;
     }
 
-    const missingSections = [];
     if (resume.work.some(workMissing))
       missingSections.push({ id: "work", label: t.sections.work });
     if (resume.education.some(educationMissing))
@@ -486,16 +492,18 @@ function App() {
     <div className="app-shell min-h-screen bg-black text-zinc-100">
       {/* Cabeçalho com título, idioma e exportação. */}
       <header className="border-b border-purple-950/70 bg-black/90 backdrop-blur">
-        <div className="header-container mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
-          <div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+        <div className="header-container mx-auto flex max-w-7xl items-start justify-between gap-4 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
               {t.appName}
             </h1>
+
             <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
               {t.headline}
             </p>
           </div>
-          <div className="header-actions flex flex-wrap items-end gap-3">
+
+          <div className="header-actions shrink-0">
             <Choice
               label={t.language}
               value={lang}
@@ -505,7 +513,7 @@ function App() {
                 { value: "en", label: "EN" },
                 { value: "es", label: "ES" },
               ]}
-              className="w-28"
+              className="w-20"
             />
           </div>
         </div>
@@ -688,7 +696,7 @@ function App() {
                     LINK_TYPES.find((entry) => entry.value === item.type)
                       ?.label || "Link"
                   }
-                  subtitle={item.url}
+                  subtitle={sanitizeUrlDisplay(item.url)}
                   removeLabel={t.remove}
                   onRemove={() => removeItem("links", item.id)}
                 >
@@ -708,6 +716,12 @@ function App() {
                         patchItem("links", item.id, "url", value)
                       }
                       placeholder={t.placeholders.linkUrl}
+                      error={isFilled(item.url) && !isUrlValid(item.url)}
+                      errorMessage={
+                        isFilled(item.url) && !isUrlValid(item.url)
+                          ? t.validationInvalidUrl
+                          : ""
+                      }
                     />
                   </div>
                 </ItemBlock>
