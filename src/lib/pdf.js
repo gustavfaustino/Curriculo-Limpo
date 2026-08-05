@@ -1,11 +1,19 @@
 import { PDFDocument, PageSizes, rgb, StandardFonts } from "pdf-lib";
-import { clean, joinDate } from "../utils/helpers";
+import { clean, joinDate, sanitizeUrlForExport } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";
 
 export async function buildPdf(resume, t, lang) {
     const doc = await PDFDocument.create();
     const regular = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    let currentLabel = "Atual";
+
+    if (lang === "en") {
+        currentLabel = "Current";
+    } else if (lang === "es") {
+        currentLabel = "Actual";
+    }
+
     let page = doc.addPage(PageSizes.A4);
     const { width, height } = page.getSize();
     const margin = 48;
@@ -32,13 +40,49 @@ export async function buildPdf(resume, t, lang) {
 
     const wrap = (text, x, size = 10, font = regular, color = colors.text, localWidth = maxWidth) => {
         const source = clean(text);
+
         if (!source) return;
+
         const lineHeight = size * 1.42;
+
+        const splitLongToken = (token) => {
+            if (font.widthOfTextAtSize(token, size) <= localWidth) {
+                return [token];
+            }
+
+            const chunks = [];
+            let chunk = "";
+
+            for (const character of token) {
+                const candidate = `${chunk}${character}`;
+
+                if (font.widthOfTextAtSize(candidate, size) > localWidth && chunk) {
+                    chunks.push(chunk);
+                    chunk = character;
+                } else {
+                    chunk = candidate;
+                }
+            }
+
+            if (chunk) {
+                chunks.push(chunk);
+            }
+
+            return chunks;
+        };
+
         source.split("\n").forEach((paragraph) => {
-            const words = paragraph.trim().split(/\s+/).filter(Boolean);
+            const tokens = paragraph
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .flatMap(splitLongToken);
+
             let line = "";
-            words.forEach((word) => {
+
+            tokens.forEach((word) => {
                 const next = line ? `${line} ${word}` : word;
+
                 if (font.widthOfTextAtSize(next, size) > localWidth && line) {
                     newPageIfNeeded(lineHeight);
                     page.drawText(line, { x, y, size, font, color });
@@ -71,11 +115,21 @@ export async function buildPdf(resume, t, lang) {
         y -= 18;
     }
 
-    const phone = [resume.country, resume.area, resume.phone].filter(Boolean).join(" ");
-    const contact = [resume.email, phone, resume.city].filter(Boolean).join(" | ");
+    const phone = resume.phone
+        ? [resume.country, resume.area, resume.phone].filter(Boolean).join(" ")
+        : "";
+
+    const contact = [resume.email, phone, resume.city]
+        .filter(Boolean)
+        .join(" | ");
     wrap(contact, margin, 9, regular, colors.text);
     if (resume.links.length) {
-        wrap(resume.links.map((link) => link.url).filter(Boolean).join(" | "), margin, 9, regular, colors.faint);
+        const links = resume.links
+            .map((link) => sanitizeUrlForExport(link.url))
+            .filter(Boolean)
+            .join(" | ");
+
+        wrap(links, margin, 9, regular, colors.faint);
     }
 
     if (resume.summary) {
@@ -87,7 +141,7 @@ export async function buildPdf(resume, t, lang) {
         heading(t.sections.work);
         resume.work.forEach((item) => {
             newPageIfNeeded(84);
-            const period = joinDate(item, lang === "en" ? "Current" : lang === "es" ? "Actual" : "Atual");
+            const period = joinDate(item, currentLabel);
             draw(item.position, margin, y, 11, bold);
             if (period) draw(period, margin + maxWidth - regular.widthOfTextAtSize(period, 9), y, 9, regular, colors.faint);
             y -= 15;
@@ -112,7 +166,7 @@ export async function buildPdf(resume, t, lang) {
             draw(item.school, margin, y, 10, regular, colors.faint);
             y -= 14;
             const status = EDUCATION_STATUS.find((entry) => entry.value === item.status)?.[lang] || "";
-            wrap([status, joinDate(item, lang === "en" ? "Current" : lang === "es" ? "Actual" : "Atual")].filter(Boolean).join(" | "), margin, 9, regular, colors.faint);
+            wrap([status, joinDate(item, currentLabel)].filter(Boolean).join(" | "), margin, 9, regular, colors.faint);
             wrap(item.notes, margin + 8, 9.5);
             y -= 8;
         });

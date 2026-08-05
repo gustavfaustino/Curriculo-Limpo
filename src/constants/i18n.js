@@ -92,7 +92,10 @@ export const TEXT = {
         loaded: "Dados recuperados do navegador.",
         success: "Arquivo gerado com sucesso.",
         validationMissing: "Preencha os campos obrigatórios:",
-        validationInvalidEmail: "Digite um email válido:",
+        validationInvalidUrl:
+            "Digite uma URL válida, algo como http://.com ou https://.com",
+        validationRequiredUrl:
+            "A URL é obrigatória.",
         validationSections: "Revise os campos obrigatórios em:",
         incompleteSection: "Seção incompleta",
         scoreTooltip: "Pontos baseados em: Nome, Email, Cargo, Resumo, Experiência, Formação e Habilidades",
@@ -252,6 +255,10 @@ export const TEXT = {
         loaded: "Browser draft restored.",
         success: "File generated successfully.",
         validationMissing: "Fill the required fields:",
+        validationInvalidUrl:
+            "Enter a valid URL, such as http://.com or https://.com",
+        validationRequiredUrl:
+            "The URL is required.",
         validationInvalidEmail: "Enter a valid email:",
         validationSections: "Review required fields in:",
         incompleteSection: "Incomplete section",
@@ -412,6 +419,10 @@ export const TEXT = {
         loaded: "Datos recuperados del navegador.",
         success: "Archivo generado correctamente.",
         validationMissing: "Completa los campos obligatorios:",
+        validationInvalidUrl:
+            "Introduce una URL válida, algo como http://.com o https://.com",
+        validationRequiredUrl:
+            "La URL es obligatoria.",
         validationInvalidEmail: "Escribe un email válido:",
         validationSections: "Revisa campos obligatorios en:",
         incompleteSection: "Sección incompleta",

@@ -1,5 +1,5 @@
 import { Document, HeadingLevel, Paragraph, TextRun } from "docx";
-import { clean, joinDate } from "../utils/helpers";
+import { clean, joinDate, sanitizeUrlForExport } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";
 
 const bulletLines = (value) => (
@@ -12,7 +12,13 @@ const bulletLines = (value) => (
 
 export function buildDocx(resume, t, lang) {
   const children = [];
-  const currentLabel = lang === "en" ? "Current" : lang === "es" ? "Actual" : "Atual";
+  let currentLabel = "Atual";
+
+  if (lang === "en") {
+    currentLabel = "Current";
+  } else if (lang === "es") {
+    currentLabel = "Actual";
+  }
 
   const addLine = (text, options = {}) => {
     const output = clean(text);
@@ -29,11 +35,19 @@ export function buildDocx(resume, t, lang) {
   addLine(resume.name, { bold: true, size: 32 });
   addLine(resume.role, { italics: true });
 
-  const phone = [resume.country, resume.area, resume.phone].filter(Boolean).join(" ");
-  const contact = [resume.email, phone, resume.city].filter(Boolean).join(" | ");
+  const phone = resume.phone
+    ? [resume.country, resume.area, resume.phone].filter(Boolean).join(" ")
+    : "";
+
+  const contact = [resume.email, phone, resume.city]
+    .filter(Boolean)
+    .join(" | ");
   addLine(contact);
 
-  const links = resume.links.map((link) => link.url).filter(Boolean).join(" | ");
+  const links = resume.links
+    .map((link) => sanitizeUrlForExport(link.url))
+    .filter(Boolean)
+    .join(" | ");
   addLine(links);
 
   if (resume.summary) {
@@ -49,8 +63,7 @@ export function buildDocx(resume, t, lang) {
       addLine(title, { bold: true });
       addLine(period, { italics: true });
       if (item.stack) addLine(`${t.fields.stack}: ${item.stack}`);
-      children.push(...bulletLines(item.duties));
-      children.push(...bulletLines(item.wins));
+      children.push(...bulletLines(item.duties), ...bulletLines(item.wins));
     });
   }
 
