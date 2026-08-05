@@ -35,8 +35,13 @@ export function buildDocx(resume, t, lang) {
   addLine(resume.name, { bold: true, size: 32 });
   addLine(resume.role, { italics: true });
 
-  const phone = [resume.country, resume.area, resume.phone].filter(Boolean).join(" ");
-  const contact = [resume.email, phone, resume.city].filter(Boolean).join(" | ");
+  const phone = resume.phone
+    ? [resume.country, resume.area, resume.phone].filter(Boolean).join(" ")
+    : "";
+
+  const contact = [resume.email, phone, resume.city]
+    .filter(Boolean)
+    .join(" | ");
   addLine(contact);
 
   const links = resume.links

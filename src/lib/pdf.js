@@ -115,8 +115,13 @@ export async function buildPdf(resume, t, lang) {
         y -= 18;
     }
 
-    const phone = [resume.country, resume.area, resume.phone].filter(Boolean).join(" ");
-    const contact = [resume.email, phone, resume.city].filter(Boolean).join(" | ");
+    const phone = resume.phone
+        ? [resume.country, resume.area, resume.phone].filter(Boolean).join(" ")
+        : "";
+
+    const contact = [resume.email, phone, resume.city]
+        .filter(Boolean)
+        .join(" | ");
     wrap(contact, margin, 9, regular, colors.text);
     if (resume.links.length) {
         const links = resume.links
