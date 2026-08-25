@@ -115,10 +115,12 @@ export const joinDate = (item, currentLabel) => {
 
   let end = "";
 
-  if (item.current || item.status === "doing") {
+  if (item.current) {
     end = currentLabel;
   } else if (item.endMonth && item.endYear) {
     end = `${item.endMonth}/${item.endYear}`;
+  } else if (item.status === "doing") {
+    end = currentLabel;
   }
 
   return [start, end].filter(Boolean).join(" - ");
