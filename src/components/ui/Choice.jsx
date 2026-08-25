@@ -14,18 +14,18 @@ export function Choice({
   // Seletor de uma opção em lista suspensa.
   return (
     <label className={`block ${className}`}>
-      <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
+      <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
         <span>{label}</span>
-        {required && <span className="ml-1 text-red-400">*</span>}
+        {required && <span className="ml-1 text-red-500 dark:text-red-400">*</span>}
         {tooltip && <Infotip text={tooltip} label={`${label}: ajuda`} />}
       </span>
 
       <div className="relative w-full">
         <select
-          className={`min-h-[44px] w-full appearance-none rounded-md border bg-zinc-950 pl-3 pr-10 text-sm text-zinc-100 outline-none transition focus:ring-2 cursor-pointer ${
+          className={`min-h-[44px] w-full appearance-none rounded-md border bg-white pl-3 pr-10 text-sm text-zinc-900 outline-none transition focus:ring-2 cursor-pointer dark:bg-zinc-950 dark:text-zinc-100 ${
             error
               ? "border-red-500 focus:border-red-400 focus:ring-red-500/30"
-              : "border-zinc-800 focus:border-purple-400 focus:ring-purple-500/30"
+              : "border-zinc-300 focus:border-purple-400 focus:ring-purple-500/30 dark:border-zinc-800"
           }`}
           value={value || ""}
           onChange={(event) => onChange(event.target.value)}
@@ -43,7 +43,7 @@ export function Choice({
         </select>
 
         <div
-          className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-zinc-400"
+          className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-zinc-500 dark:text-zinc-400"
           aria-hidden="true"
         >
           <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">

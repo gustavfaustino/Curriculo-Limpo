@@ -4,15 +4,30 @@
 
 @layer base {
   html {
-    background: #000;
     /* Evita que o usuário dê zoom acidental com dois toques rápidos */
     touch-action: manipulation;
+  }
+
+  html:not(.dark) {
+    background: #fff;
+  }
+
+  html.dark {
+    background: #000;
   }
 
   body {
     @apply antialiased;
     margin: 0;
     overflow-x: hidden;
+    min-height: 100vh;
+    /* Remove aquele fundo cinza que pisca ao tocar em botões no mobile */
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  /* Tema escuro (padrão da aplicação). */
+  .dark body {
     background:
       radial-gradient(
         circle at top left,
@@ -21,14 +36,28 @@
       ),
       linear-gradient(180deg, #05000d 0%, #000 42%, #08030f 100%);
     color: #f4f4f5;
-    min-height: 100vh;
-    /* Remove aquele fundo cinza que pisca ao tocar em botões no mobile */
-    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Tema claro. */
+  body {
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(168, 85, 247, 0.12),
+        transparent 34rem
+      ),
+      linear-gradient(180deg, #ffffff 0%, #fbf9ff 42%, #f6f1fd 100%);
+    color: #18122b;
+  }
+
+  .dark ::selection {
+    background: rgba(168, 85, 247, 0.48);
+    color: #fff;
   }
 
   ::selection {
-    background: rgba(168, 85, 247, 0.48);
-    color: #fff;
+    background: rgba(168, 85, 247, 0.32);
+    color: #18122b;
   }
 }
 
@@ -50,6 +79,7 @@
   }
 }
 
+/* Telas pequenas e médias (celulares e tablets em pé, ex: iPad Pro 11 ~834px) */
 @media screen and (max-width: 1023px) {
   .header-container {
     flex-direction: column;
@@ -60,7 +90,9 @@
   .header-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: flex-end;
     width: 100%;
+    gap: 0.5rem;
   }
 
   .main-layout {
@@ -78,7 +110,6 @@
     margin-left: -1rem;
     margin-right: -1rem;
     padding: 0.75rem 0.75rem;
-    background-color: rgba(0, 0, 0, 0.94);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(126, 34, 206, 0.38);
@@ -165,5 +196,39 @@
 
   .sidebar-aside {
     margin-top: 1rem;
+  }
+}
+
+.dark .nav-aside {
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.nav-aside {
+  background-color: rgba(255, 255, 255, 0.88);
+}
+
+/* Ajustes dedicados para tablets em modo retrato/paisagem, cobrindo o
+   iPad Pro 11" (~834x1194) e aparelhos semelhantes (~768-1023px). O menu
+   de etapas (nav-aside) mantém o mesmo comportamento de rolagem lateral
+   usado nos celulares (definido no bloco max-width:1023px acima); aqui só
+   ajustamos o cabeçalho, que tem espaço de sobra para ficar em linha. */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .header-container {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .header-actions {
+    width: auto;
+  }
+}
+
+/* Faixa entre o breakpoint "tablet" e o "lg" do Tailwind (iPad Pro 11 na
+   horizontal, ~1194px), onde as três colunas ainda cabem mas se
+   beneficiam de menos espaço reservado às laterais. */
+@media screen and (min-width: 1024px) and (max-width: 1180px) {
+  .main-layout {
+    grid-template-columns: 200px minmax(0, 1fr) 240px !important;
+    gap: 1.25rem !important;
   }
 }

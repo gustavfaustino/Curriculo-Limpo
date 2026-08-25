@@ -13,38 +13,37 @@ export function Field({
   errorMessage = "",
   tooltip = "",
   className = "",
+  maxLength,
 }) {
-  // Campo de texto simples com validação visual.
+  // Campo de texto simples com validação visual e limite de caracteres opcional.
+  const handleChange = (event) => {
+    const next = event.target.value;
+    onChange(maxLength ? next.slice(0, maxLength) : next);
+  };
+
   return (
     <label className={`block ${className}`}>
-      <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-400">
+      <span className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
         <span>{label}</span>
-        {required && <span className="ml-1 text-red-400">*</span>}
-        {/* {tooltip && (
-          <span
-            className="ml-2 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-zinc-500/80 text-[10px] text-zinc-200 cursor-help"
-            title={tooltip}
-          >
-            ?
-          </span>
-        )} */}
+        {required && <span className="ml-1 text-red-500 dark:text-red-400">*</span>}
         {tooltip && <Infotip text={tooltip} label={`${label}: ajuda`} />}
       </span>
       <input
-        className={`min-h-[44px] w-full rounded-md border bg-zinc-950 px-3 text-sm text-zinc-100 outline-none transition focus:ring-2 ${
+        className={`min-h-[44px] w-full rounded-md border bg-white px-3 text-sm text-zinc-900 outline-none transition focus:ring-2 dark:bg-zinc-950 dark:text-zinc-100 ${
           error
             ? "border-red-500 focus:border-red-400 focus:ring-red-500/30"
-            : "border-zinc-800 focus:border-purple-400 focus:ring-purple-500/30"
+            : "border-zinc-300 focus:border-purple-400 focus:ring-purple-500/30 dark:border-zinc-800"
         }`}
         type={type}
         value={value || ""}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={handleChange}
         onBlur={onBlur}
         placeholder={placeholder}
+        maxLength={maxLength}
         aria-invalid={error || undefined}
       />
       {errorMessage && (
-        <p role="alert" className="mt-2 text-xs text-red-300">
+        <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-300">
           {errorMessage}
         </p>
       )}

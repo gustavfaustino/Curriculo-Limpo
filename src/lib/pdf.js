@@ -1,6 +1,27 @@
-import { PDFDocument, PageSizes, rgb, StandardFonts } from "pdf-lib";
-import { clean, joinDate, sanitizeUrlForExport } from "../utils/helpers";
+import { PDFDocument, PageSizes, PDFName, PDFString, rgb, StandardFonts } from "pdf-lib";
+import { clean, joinDate, resolveLinkLabel, sanitizeUrlForExport } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";
+
+// Adiciona uma anotação de link clicável (URI) sobre uma área retangular da página.
+const addLinkAnnotation = (doc, page, { x, y, width, height }, url) => {
+    const annotation = doc.context.register(
+        doc.context.obj({
+            Type: "Annot",
+            Subtype: "Link",
+            Rect: [x, y, x + width, y + height],
+            Border: [0, 0, 0],
+            A: {
+                Type: "Action",
+                S: "URI",
+                URI: PDFString.of(url),
+            },
+        }),
+    );
+
+    const existingAnnots = page.node.Annots();
+    const annots = existingAnnots ? existingAnnots.asArray() : [];
+    page.node.set(PDFName.of("Annots"), doc.context.obj([...annots, annotation]));
+};
 
 export async function buildPdf(resume, t, lang) {
     const doc = await PDFDocument.create();
@@ -22,6 +43,7 @@ export async function buildPdf(resume, t, lang) {
         text: rgb(0.12, 0.12, 0.12),
         faint: rgb(0.36, 0.36, 0.36),
         title: rgb(0.05, 0.05, 0.05),
+        link: rgb(0.42, 0.15, 0.65),
     };
     let y = height - margin;
 
@@ -36,6 +58,59 @@ export async function buildPdf(resume, t, lang) {
         if (!output) return 0;
         page.drawText(output, { x, y: yPosition, size, font, color });
         return size * 1.25;
+    };
+
+    // Desenha um texto clicável (link) e devolve a largura ocupada.
+    const drawLink = (text, x, yPosition, url, size = 10, font = bold) => {
+        const output = clean(text);
+        const sanitizedUrl = sanitizeUrlForExport(url);
+        if (!output || !sanitizedUrl) return 0;
+        const textWidth = font.widthOfTextAtSize(output, size);
+        page.drawText(output, { x, y: yPosition, size, font, color: colors.link });
+        page.drawLine({
+            start: { x, y: yPosition - 1.5 },
+            end: { x: x + textWidth, y: yPosition - 1.5 },
+            thickness: 0.6,
+            color: colors.link,
+        });
+        addLinkAnnotation(
+            doc,
+            page,
+            { x, y: yPosition - 2, width: textWidth, height: size + 2 },
+            sanitizedUrl,
+        );
+        return textWidth;
+    };
+
+    // Desenha uma linha com múltiplos links clicáveis lado a lado (ex: os
+    // links de contato do topo do currículo), separados por " | ", quebrando
+    // para a próxima linha automaticamente quando necessário.
+    const drawLinksLine = (items, x, size = 9) => {
+        if (!items.length) return;
+        newPageIfNeeded(size * 1.6);
+        const lineHeight = size * 1.42;
+        const sepWidth = regular.widthOfTextAtSize("   ", size);
+        let cursorX = x;
+
+        items.forEach((item, index) => {
+            const label = `[${item.label}]`;
+            const labelWidth = bold.widthOfTextAtSize(label, size);
+
+            if (cursorX + labelWidth > x + maxWidth && cursorX > x) {
+                y -= lineHeight;
+                newPageIfNeeded(lineHeight);
+                cursorX = x;
+            }
+
+            drawLink(label, cursorX, y, item.url, size);
+            cursorX += labelWidth;
+
+            if (index < items.length - 1) {
+                cursorX += sepWidth;
+            }
+        });
+
+        y -= lineHeight;
     };
 
     const wrap = (text, x, size = 10, font = regular, color = colors.text, localWidth = maxWidth) => {
@@ -124,12 +199,14 @@ export async function buildPdf(resume, t, lang) {
         .join(" | ");
     wrap(contact, margin, 9, regular, colors.text);
     if (resume.links.length) {
-        const links = resume.links
-            .map((link) => sanitizeUrlForExport(link.url))
-            .filter(Boolean)
-            .join(" | ");
+        const linkItems = resume.links
+            .map((link) => ({
+                url: sanitizeUrlForExport(link.url),
+                label: resolveLinkLabel(link, lang, t.genericLink),
+            }))
+            .filter((item) => item.url);
 
-        wrap(links, margin, 9, regular, colors.faint);
+        drawLinksLine(linkItems, margin, 9);
     }
 
     if (resume.summary) {
@@ -172,9 +249,20 @@ export async function buildPdf(resume, t, lang) {
         });
     }
 
-    if (resume.skills.length) {
+    const hasSkills = resume.skills.length || (resume.skillGroups || []).some((group) => group.skills?.length);
+    if (hasSkills) {
         heading(t.sections.skills);
-        wrap(resume.skills.join(", "), margin, 10);
+        if (resume.skills.length) {
+            wrap(resume.skills.join(", "), margin, 10);
+        }
+        (resume.skillGroups || []).forEach((group) => {
+            if (!group.skills?.length) return;
+            const label = clean(group.title) || t.generalSkills;
+            newPageIfNeeded(28);
+            draw(`${label}:`, margin, y, 9.5, bold, colors.faint);
+            y -= 13;
+            wrap(group.skills.join(", "), margin, 10);
+        });
     }
 
     if (resume.languages.length) {
@@ -192,7 +280,12 @@ export async function buildPdf(resume, t, lang) {
             y -= 15;
             wrap([item.issuer, item.date, item.hours].filter(Boolean).join(" | "), margin, 9, regular, colors.faint);
             wrap(item.notes, margin + 8, 9.5);
-            wrap(item.proof, margin + 8, 8.5, regular, colors.faint);
+            const sanitizedProof = sanitizeUrlForExport(item.proof);
+            if (sanitizedProof) {
+                newPageIfNeeded(16);
+                drawLink(`[${t.certificateLink}]`, margin + 8, y, sanitizedProof, 9);
+                y -= 14;
+            }
             y -= 6;
         });
     }
