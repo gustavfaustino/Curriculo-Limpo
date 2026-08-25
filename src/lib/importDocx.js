@@ -3,45 +3,112 @@ import { createId } from "../utils/helpers";
 
 const sectionNames = {
   summary: ["resumo", "resumo profissional", "perfil", "objetivo", "summary", "profile", "objective"],
+  recognition: ["reconhecimento", "reconhecimentos", "premio", "premios", "conquista", "conquistas", "awards", "recognition", "recognitions"],
   work: ["experiencia", "experiencia profissional", "experiencias profissionais", "experience", "employment", "work history"],
   education: ["formacao", "formacao academica", "educacao", "education", "academic background"],
   skills: ["habilidades", "competencias", "competencias tecnicas", "competencias comportamentais", "skills", "technical skills"],
   languages: ["idiomas", "linguas", "languages"],
-  certificates: ["certificado", "certificados", "cursos", "reconhecimentos", "certifications", "courses"],
+  certificates: ["certificado", "certificados", "cursos", "certifications", "courses"],
 };
 
-const normalize = (value) => value.replace(/\s+/g, " ").trim();
-const plain = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const normalize = (value = "") => value.replace(/\s+/g, " ").trim();
+const plain = (value = "") => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const linesOf = (text) => text.split(/\r?\n/).map(normalize).filter(Boolean);
-const findSection = (line) => {
-  const candidate = plain(line.replace(/[:：]$/, ""));
-  return Object.entries(sectionNames).find(([, names]) => names.includes(candidate))?.[0];
-};
+const findSection = (line) => Object.entries(sectionNames).find(([, names]) => names.includes(plain(line.replace(/[:：]$/, ""))))?.[0];
+const isDateLine = (line) => /(?:\b\d{1,2}[/-])?\d{4}\s*(?:-|–|—|até|to)\s*(?:(?:\d{1,2}[/-])?\d{4}|atual|presente|current|present)\b/i.test(line);
+const isEducationTitle = (line) => /^(ensino |tecn[oó]logo|t[eé]cnico|gradua[cç][aã]o|p[oó]s|mestrado|doutorado|bachelor|master|associate|high school)/i.test(line);
+
 const monthNumber = (value) => {
   const months = { jan: "01", feb: "02", mar: "03", abr: "04", apr: "04", mai: "05", may: "05", jun: "06", jul: "07", ago: "08", aug: "08", set: "09", sep: "09", out: "10", oct: "10", nov: "11", dez: "12", dec: "12" };
-  const match = value.toLowerCase().match(/(\d{1,2})[/-](\d{4})|(jan|feb|mar|abr|apr|mai|may|jun|jul|ago|aug|set|sep|out|oct|nov|dez|dec)[a-z]*[ ./-]+(\d{4})|(\d{4})/);
+  const match = value.toLowerCase().match(/(\d{1,2})[/-](\d{4})|(jan|feb|mar|abr|apr|mai|may|jun|jul|ago|aug|set|sep|out|oct|nov|dez|dec)[a-z]*[ ./-]+(\d{4})|(\d{4})\//);
   if (!match) return ["", ""];
   if (match[3]) return [months[match[3].slice(0, 3)], match[4]];
   if (match[5]) return ["", match[5]];
   return [match[1]?.padStart(2, "0") || "", match[2] || ""];
 };
 
-const dates = (value) => {
+const dates = (value = "") => {
   const parts = value.split(/\s*(?:-|–|—|até|to)\s*/i).filter(Boolean);
   const [startMonth, startYear] = monthNumber(parts[0] || value);
-  const end = parts[1] || "";
-  const [endMonth, endYear] = monthNumber(end);
+  const [endMonth, endYear] = monthNumber(parts[1] || "");
   const current = /atual|presente|current|present/i.test(value);
   return { startMonth, startYear, endMonth: current ? "" : endMonth, endYear: current ? "" : endYear, current };
 };
 
 const emptyItem = (group) => ({
   id: createId(),
-  ...(group === "work" ? { position: "", company: "", stack: "", duties: "", wins: "", ...dates("") } : {}),
-  ...(group === "education" ? { type: "superior", course: "", school: "", status: "done", notes: "", ...dates("") } : {}),
-  ...(group === "languages" ? { name: "", level: "Intermediário" } : {}),
+  ...(group === "work" ? { position: "", company: "", stack: "", duties: "", wins: "", ...dates() } : {}),
+  ...(group === "education" ? { type: "superior", course: "", school: "", status: "done", notes: "", ...dates() } : {}),
   ...(group === "certificates" ? { name: "", issuer: "", date: "", hours: "", proof: "", notes: "" } : {}),
 });
+
+const splitRoleCompany = (line) => {
+  const parts = line.split(/\s+(?:-|–|—)\s+/).map(normalize).filter(Boolean);
+  return { position: parts[0] || line, company: parts.slice(1).join(" - ") };
+};
+
+function importWork(lines) {
+  const result = [];
+  let pendingTitle = "";
+  lines.forEach((line) => {
+    if (isDateLine(line)) {
+      const item = emptyItem("work");
+      Object.assign(item, splitRoleCompany(pendingTitle), dates(line));
+      result.push(item);
+      pendingTitle = "";
+    } else if (/^.+\s+(?:-|–|—)\s+.+$/.test(line)) {
+      // In linear ATS documents a new "Role - Company" line follows the
+      // previous role's duties and precedes its own date line.
+      pendingTitle = line;
+    } else if (result.length) {
+      const item = result[result.length - 1];
+      item.duties = `${item.duties}${item.duties ? "\n" : ""}${line}`;
+    } else {
+      pendingTitle = line;
+    }
+  });
+  return result;
+}
+
+function importEducation(lines) {
+  const blocks = [];
+  lines.forEach((line) => {
+    if (!blocks.length || isEducationTitle(line)) blocks.push([line]);
+    else blocks[blocks.length - 1].push(line);
+  });
+  return blocks.map((block) => {
+    const item = emptyItem("education");
+    const [typeAndCourse, school = "", ...details] = block;
+    const split = typeAndCourse.split(/\s+(?:-|–|—)\s+/);
+    item.course = normalize(split.slice(1).join(" - ") || split[0]);
+    item.school = school;
+    const detail = details.join(" ");
+    item.status = /andamento|cursando|in progress/i.test(detail) ? "doing" : /interrompido|trancado|paused/i.test(detail) ? "paused" : "done";
+    Object.assign(item, dates(detail));
+    return item;
+  });
+}
+
+function importCertificates(lines) {
+  const result = [];
+  for (let index = 0; index < lines.length;) {
+    const item = emptyItem("certificates");
+    item.name = lines[index++];
+    const issuerAndDate = lines[index] || "";
+    if (issuerAndDate && !/^\[.*\]$/.test(issuerAndDate)) {
+      index += 1;
+      const [issuer, date] = issuerAndDate.split(/\s*[|–—]\s*/, 2);
+      item.issuer = normalize(issuer);
+      item.date = normalize(date || "");
+    }
+    const notes = [];
+    while (index < lines.length && !/^\[.*\]$/.test(lines[index]) && !(index + 1 < lines.length && /[|–—].*\d{4}/.test(lines[index + 1]))) notes.push(lines[index++]);
+    if (index < lines.length && /^\[.*\]$/.test(lines[index])) index += 1;
+    item.notes = notes.join(" ");
+    result.push(item);
+  }
+  return result.filter((item) => item.name);
+}
 
 export async function importDocx(file) {
   const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
@@ -57,31 +124,21 @@ export async function importDocx(file) {
   });
 
   const email = value.match(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/)?.[0] || "";
-  const urls = [...value.matchAll(/(?:https?:\/\/|www\.)[^\s<>]+/gi)].map((match) => match[0].replace(/[),.;]+$/, ""));
+  const urls = [...value.matchAll(/(?:https?:\/\/|www\.)[^\s<>|]+/gi)].map((match) => match[0].replace(/[),.;]+$/, ""));
   const phone = value.match(/(?:\+\d{1,3}[\s-]?)?(?:\(?\d{2,3}\)?[\s-]?)?\d{4,5}[\s-]?\d{4}/)?.[0] || "";
-  const top = sections.top.filter((line) => line !== email && !urls.includes(line) && line !== phone);
-  const contactLine = top.find((line) => line.includes("@") || /\d{2,}/.test(line)) || "";
-  const role = top.find((line) => line !== contactLine && line !== top[0]) || "";
-  const result = {
-    name: top[0] || "", role, email, country: "+55", area: "", phone: phone.replace(/\D/g, ""), city: contactLine.split("|")[0]?.trim() || "",
-    links: urls.map((url) => ({ id: createId(), type: /linkedin/i.test(url) ? "linkedin" : /github/i.test(url) ? "github" : "other", title: "", url })),
-    summary: (sections.summary || []).join(" "), skills: (sections.skills || []).join(", ").split(/[,;|•]/).map(normalize).filter((skill) => skill && !skill.includes(":")),
-    skillGroups: [], work: [], education: [], languages: [], certificates: [],
-  };
+  const top = sections.top;
+  const name = top.find((line) => !line.includes("@") && !/(?:https?:\/\/|www\.)/i.test(line) && line !== phone) || "";
+  const contactLine = top.find((line) => line.includes("@") || /(?:https?:\/\/|www\.)/i.test(line) || line.includes(phone)) || "";
+  const city = normalize(contactLine.replace(email, "").replace(phone, "").replace(/(?:https?:\/\/|www\.)[^\s<>|]+/gi, "").replace(/^[|\s]+|[|\s]+$/g, ""));
+  const role = top.find((line) => line !== name && !line.includes("@") && !/(?:https?:\/\/|www\.)/i.test(line) && line !== phone) || "";
 
-  (sections.languages || []).forEach((line) => { const [name, level = "Intermediário"] = line.split(/\s*[-–|:]\s*/, 2); if (name) result.languages.push({ id: createId(), name: normalize(name), level: normalize(level) }); });
-  let currentWork;
-  (sections.work || []).forEach((line) => {
-    if (/\d{4}/.test(line)) {
-      const item = emptyItem("work");
-      const datePart = line.match(/(?:[A-Za-zÀ-ÿ]{3,9}\/)?\d{4}\s*(?:-|–|—|até|to)\s*(?:[A-Za-zÀ-ÿ]{3,9}\/)?(?:\d{4}|atual|presente|current|present)/i)?.[0] || line.match(/\d{4}/)?.[0] || "";
-      const title = line.replace(datePart, "").replace(/\s*[–—-]\s*$/, "").trim();
-      const parts = title.split(/\s+[–—-]\s+|\t/).map(normalize);
-      item.position = parts[0] || title; item.company = parts[1] || ""; Object.assign(item, dates(datePart));
-      result.work.push(item); currentWork = item;
-    } else if (currentWork) currentWork.duties = `${currentWork.duties}${currentWork.duties ? "\n" : ""}${line}`;
-  });
-  (sections.education || []).forEach((line) => { const item = emptyItem("education"); const parts = line.split(/\s+[|—–-]\s+/); item.course = parts[0] || line; item.school = parts[1] || ""; Object.assign(item, dates(parts.find((part) => /\d{4}/.test(part)) || "")); result.education.push(item); });
-  (sections.certificates || []).forEach((line) => { const item = emptyItem("certificates"); const parts = line.split(/\s+[|—–-]\s+/); [item.name, item.issuer, item.date] = parts; result.certificates.push(item); });
-  return result;
+  return {
+    name, role, email, country: "+55", area: "", phone: phone.replace(/\D/g, ""), city,
+    links: urls.map((url) => ({ id: createId(), type: /linkedin/i.test(url) ? "linkedin" : /github/i.test(url) ? "github" : "other", title: "", url })),
+    summary: (sections.summary || []).join(" "), recognition: (sections.recognition || []).join("\n"),
+    skills: (sections.skills || []).flatMap((line) => line.split(/[,;|•]/)).map(normalize).filter(Boolean), skillGroups: [],
+    work: importWork(sections.work || []), education: importEducation(sections.education || []),
+    languages: (sections.languages || []).map((line) => { const [name, level = "Intermediário"] = line.split(/\s*[-–|:]\s*/, 2); return { id: createId(), name: normalize(name), level: normalize(level) }; }).filter((item) => item.name),
+    certificates: importCertificates(sections.certificates || []),
+  };
 }
