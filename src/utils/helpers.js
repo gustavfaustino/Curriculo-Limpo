@@ -1,3 +1,5 @@
+import { LINK_TYPES } from "../constants/data";
+
 export const createId = () => crypto.randomUUID();
 
 const TRACKING_PARAMS = new Set([
@@ -103,6 +105,8 @@ export const isUrlValid = (value) => {
   }
 };
 
+// Formata o período no padrão simples "MM/AAAA - MM/AAAA", usado tanto na
+// interface quanto nos arquivos exportados (PDF/DOCX).
 export const joinDate = (item, currentLabel) => {
   const start =
     item.startMonth && item.startYear
@@ -120,6 +124,17 @@ export const joinDate = (item, currentLabel) => {
   return [start, end].filter(Boolean).join(" - ");
 };
 
+// Resolve o rótulo de exibição de um link de contato: usa o nome do tipo
+// (LinkedIn, GitHub, Portfólio) ou, quando o tipo é personalizado, o título
+// digitado pelo usuário — com um texto de reserva caso esteja vazio.
+export const resolveLinkLabel = (link, lang, fallbackLabel) => {
+  if (link.type && link.type !== "other") {
+    const found = LINK_TYPES.find((entry) => entry.value === link.type);
+    if (found) return found[lang] || found.label || link.type;
+  }
+  return clean(link.title) || fallbackLabel;
+};
+
 export const downloadFile = (blob, filename) => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -132,4 +147,15 @@ export const downloadFile = (blob, filename) => {
   anchor.remove();
 
   URL.revokeObjectURL(url);
+};
+
+// Reordena um array de itens de forma imutável, movendo o elemento no
+// índice informado uma posição para cima (-1) ou para baixo (+1).
+export const reorder = (list, index, direction) => {
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= list.length) return list;
+  const next = [...list];
+  const [moved] = next.splice(index, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
 };

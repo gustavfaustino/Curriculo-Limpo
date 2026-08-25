@@ -2,6 +2,12 @@ export const STORAGE_KEY = "ats_resume_workspace_v1";
 
 export const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 
+export const MONTH_NAMES = {
+    pt: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+    en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    es: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+};
+
 export const COUNTRIES = [
     { value: "+55", pt: "Brasil (+55)", en: "Brasil (+55)", es: "Brasil (+55)" },
     { value: "+1", pt: "EUA/Canadá (+1)", en: "USA/Canada (+1)", es: "EE.UU./Canadá (+1)" },
@@ -21,7 +27,7 @@ export const LINK_TYPES = [
     { value: "linkedin", pt: "LinkedIn", en: "LinkedIn", es: "LinkedIn" },
     { value: "github", pt: "GitHub", en: "GitHub", es: "GitHub" },
     { value: "portfolio", pt: "Portfólio", en: "Portfolio", es: "Portafolio" },
-    { value: "other", pt: "Outro", en: "Other", es: "Otro" },
+    { value: "other", pt: "Personalizado", en: "Custom", es: "Personalizado" },
 ];
 
 export const EDUCATION_TYPES = [

@@ -1,9 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
 
   theme: {
   extend: {
+    screens: {
+      'tablet': '768px',
+    },
     animation: {
       'fade-in-scale': 'fadeInScale 0.3s ease-out',
       'pulse-ring': 'pulseRing 1.8s cubic-bezier(0.66, 0, 0, 1) infinite',

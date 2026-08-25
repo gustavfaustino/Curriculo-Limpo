@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Packer } from "docx";
 import { useStoredResume, BLANK } from "./hooks/useStoredResume";
+import { useTheme } from "./hooks/useTheme";
 import { buildPdf } from "./lib/pdf";
 import { buildDocx } from "./lib/docx";
 import {
@@ -17,9 +18,12 @@ import {
   joinDate,
   downloadFile,
   sanitizeUrlDisplay,
+  resolveLinkLabel,
+  reorder,
 } from "./utils/helpers";
 import {
   MONTHS,
+  MONTH_NAMES,
   COUNTRIES,
   LINK_TYPES,
   EDUCATION_TYPES,
@@ -34,15 +38,19 @@ import { Area } from "./components/ui/Area";
 import { Choice } from "./components/ui/Choice";
 import { Toggle } from "./components/ui/Toggle";
 import { AddButton } from "./components/ui/Buttons";
+import { ThemeToggle } from "./components/ui/ThemeToggle";
 
 import { Section } from "./components/resume/Section";
 import { ItemBlock } from "./components/resume/ItemBlock";
 import { Empty } from "./components/resume/Empty";
 import { Metric } from "./components/resume/Metric";
+import { SkillGroups } from "./components/resume/SkillGroups";
 
 function App() {
   // Estado principal do currículo.
   const [resume, setResume] = useStoredResume();
+  // Tema visual (claro ou escuro).
+  const [theme, toggleTheme] = useTheme();
   // Idioma ativo da interface.
   const [lang, setLang] = useState("pt");
   // Aba visível no formulário.
@@ -92,6 +100,8 @@ function App() {
       areaLabel: hint.areaLabel?.[lang] || t.fields.area,
       areaPlaceholder: hint.areaPlaceholder?.[lang] || t.placeholders.area,
       phonePlaceholder: hint.phonePlaceholder?.[lang] || t.placeholders.phone,
+      areaMaxLength: hint.areaMaxLength || PHONE_HINTS.default.areaMaxLength,
+      phoneMaxLength: hint.phoneMaxLength || PHONE_HINTS.default.phoneMaxLength,
     };
   }, [
     resume.country,
@@ -172,6 +182,7 @@ function App() {
         links: {
           id: createId(),
           type: nextLinkType,
+          title: "",
           url: "",
         },
         work: {
@@ -242,6 +253,18 @@ function App() {
     [t.confirmRemove, setResume],
   );
 
+  // Reordena um item dentro de uma seção repetível (experiência, formação,
+  // links, idiomas ou certificados), movendo-o uma posição para cima/baixo.
+  const moveItem = useCallback(
+    (group, index, direction) => {
+      setResume((current) => ({
+        ...current,
+        [group]: reorder(current[group], index, direction),
+      }));
+    },
+    [setResume],
+  );
+
   const updateSkills = (value) => {
     setSkillsDraft(value);
     const skills = value
@@ -250,6 +273,13 @@ function App() {
       .filter(Boolean);
     setRoot("skills", skills);
   };
+
+  const updateSkillGroups = useCallback(
+    (groups) => {
+      setResume((current) => ({ ...current, skillGroups: groups }));
+    },
+    [setResume],
+  );
 
   // Validação da seção de experiência.
   const workMissing = useCallback((item) => {
@@ -467,7 +497,10 @@ function App() {
 
   const monthOptions = [
     { value: "", label: "--" },
-    ...MONTHS.map((month) => ({ value: month, label: month })),
+    ...MONTHS.map((month, index) => ({
+      value: month,
+      label: `${month} (${MONTH_NAMES[lang][index]})`,
+    })),
   ];
   const levelOptions = LEVELS[lang].map((level) => ({
     value: level,
@@ -519,16 +552,16 @@ function App() {
   };
 
   return (
-    <div className="app-shell min-h-screen bg-black text-zinc-100">
-      {/* Cabeçalho com título, idioma e exportação. */}
-      <header className="border-b border-purple-950/70 bg-black/90 backdrop-blur">
+    <div className="app-shell min-h-screen bg-white text-zinc-900 dark:bg-black dark:text-zinc-100">
+      {/* Cabeçalho com título, idioma, tema e exportação. */}
+      <header className="border-b border-purple-200 bg-white/90 backdrop-blur dark:border-purple-950/70 dark:bg-black/90">
         <div className="header-container mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white md:text-4xl">
               {t.appName}
             </h1>
 
-            <div className="header-actions shrink-0">
+            <div className="header-actions flex shrink-0 items-end gap-2">
               <Choice
                 label={t.language}
                 value={lang}
@@ -540,10 +573,11 @@ function App() {
                 ]}
                 className="w-20"
               />
+              <ThemeToggle theme={theme} onToggle={toggleTheme} labels={t} />
             </div>
           </div>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
             {t.headline}
           </p>
         </div>
@@ -552,11 +586,11 @@ function App() {
       {/* Layout principal: navegação, formulário e painel lateral. */}
       <main className="main-layout mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-8">
         {/* Menu das seções do currículo. */}
-        <aside className="nav-aside sticky top-0 z-20 bg-black/90 px-4 py-3 backdrop-blur-xl lg:static lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+        <aside className="nav-aside sticky top-0 z-20 px-4 py-3 backdrop-blur-xl lg:static lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
           <div
             role="tablist"
             aria-label="Seções do currículo"
-            className="nav-tablist flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 md:grid md:grid-cols-1 lg:pb-2"
+            className="nav-tablist flex snap-x snap-mandatory scroll-smooth overflow-x-auto gap-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-2 dark:border-zinc-800 dark:bg-zinc-950/80 lg:grid lg:grid-cols-1 lg:pb-2"
           >
             {TABS.map((tab, index) => {
               const stepStatus = wizardStatuses[tab];
@@ -564,24 +598,26 @@ function App() {
               const isActive = active === tab;
 
               // Lógica do indicador numérico
-              let dotClass = "border-zinc-700 bg-zinc-950 text-zinc-500";
+              let dotClass =
+                "border-zinc-300 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-500";
               if (isActive) {
                 dotClass =
                   "border-purple-300 bg-purple-500 text-white shadow-lg shadow-purple-700/50";
               } else if (stepStatus === "complete") {
                 dotClass = "border-purple-300 bg-purple-300 text-black";
               } else if (stepStatus === "incomplete") {
-                dotClass = "border-purple-500 bg-purple-950 text-purple-100";
+                dotClass =
+                  "border-purple-400 bg-purple-100 text-purple-700 dark:border-purple-500 dark:bg-purple-950 dark:text-purple-100";
               }
 
               // Lógica do estilo do botão
               let buttonStatusClass =
-                "border-transparent text-zinc-400 hover:border-purple-900/70 hover:bg-zinc-900 hover:text-zinc-100";
+                "border-transparent text-zinc-500 hover:border-purple-300 hover:bg-purple-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-purple-900/70 dark:hover:bg-zinc-900 dark:hover:text-zinc-100";
               if (isActive) {
                 buttonStatusClass =
-                  "border-purple-500 bg-purple-950/70 text-white";
+                  "border-purple-400 bg-purple-100/70 text-zinc-900 dark:border-purple-500 dark:bg-purple-950/70 dark:text-white";
               } else if (isLocked) {
-                buttonStatusClass = "border-transparent text-zinc-600";
+                buttonStatusClass = "border-transparent text-zinc-400 dark:text-zinc-600";
               }
 
               return (
@@ -595,20 +631,20 @@ function App() {
                   onClick={() => handleTabChange(tab)}
                   disabled={isLocked}
                   aria-disabled={isLocked}
-                  className={`nav-tab-item flex snap-start shrink-0 min-w-[80px] flex-col items-center justify-center gap-1.5 rounded-md border p-2 text-center transition disabled:cursor-not-allowed disabled:opacity-50 md:min-w-0 md:w-full md:flex-row md:items-center md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-left ${buttonStatusClass}`}
+                  className={`nav-tab-item flex snap-start shrink-0 min-w-[80px] flex-col items-center justify-center gap-1.5 rounded-md border p-2 text-center transition disabled:cursor-not-allowed disabled:opacity-50 lg:min-w-0 lg:w-full lg:flex-row lg:items-center lg:justify-start lg:gap-3 lg:px-3 lg:py-2.5 lg:text-left ${buttonStatusClass}`}
                 >
                   <span
-                    className={`wizard-dot flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold md:h-8 md:w-8 ${dotClass}`}
+                    className={`wizard-dot flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold lg:h-8 lg:w-8 ${dotClass}`}
                     aria-hidden="true"
                   >
                     {index + 1}
                   </span>
 
-                  <span className="wizard-label flex min-w-0 flex-1 flex-col items-center md:items-start">
-                    <span className="block max-w-[85px] truncate text-xs font-semibold leading-tight md:max-w-none md:text-sm">
+                  <span className="wizard-label flex min-w-0 flex-1 flex-col items-center lg:items-start">
+                    <span className="block max-w-[85px] truncate text-xs font-semibold leading-tight lg:max-w-none lg:text-sm">
                       {t.sections[tab]}
                     </span>
-                    <span className="hidden text-[10px] text-purple-300/80 md:block md:text-xs">
+                    <span className="hidden text-[10px] text-purple-600/80 dark:text-purple-300/80 lg:block lg:text-xs">
                       {t.wizard[stepStatus]}
                     </span>
                   </span>
@@ -626,8 +662,8 @@ function App() {
               aria-live="polite"
               className={`mb-4 rounded-md border px-4 py-3 text-sm ${
                 notice.type === "error"
-                  ? "border-red-500 bg-red-950/40 text-red-100"
-                  : "border-emerald-600 bg-emerald-950/40 text-emerald-100"
+                  ? "border-red-300 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-100"
+                  : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-100"
               }`}
             >
               {notice.message}
@@ -650,6 +686,7 @@ function App() {
                 placeholder={t.placeholders.name}
                 required
                 error={errors.name}
+                maxLength={100}
               />
               {/* Cargo alvo. */}
               <Field
@@ -657,6 +694,7 @@ function App() {
                 value={resume.role}
                 onChange={(value) => setRoot("role", value)}
                 placeholder={t.placeholders.role}
+                maxLength={100}
               />
               {/* Email principal de contato. */}
               <Field
@@ -675,6 +713,7 @@ function App() {
                 error={errors.email}
                 errorMessage={errors.email ? t.validationInvalidEmail : ""}
                 tooltip={t.help?.email}
+                maxLength={100}
               />
               {/* Cidade e localização. */}
               <Field
@@ -682,6 +721,7 @@ function App() {
                 value={resume.city}
                 onChange={(value) => setRoot("city", value)}
                 placeholder={t.placeholders.city}
+                maxLength={100}
               />
 
               <fieldset className="phone-fieldset grid gap-3 md:col-span-2 md:grid-cols-[180px_120px_1fr] md:items-end">
@@ -704,6 +744,7 @@ function App() {
                   placeholder={phoneHint.areaPlaceholder}
                   type="tel"
                   tooltip={t.help?.area}
+                  maxLength={phoneHint.areaMaxLength}
                 />
                 <Field
                   label={t.fields.phone}
@@ -712,30 +753,30 @@ function App() {
                   placeholder={phoneHint.phonePlaceholder}
                   type="tel"
                   tooltip={t.help?.phone}
+                  maxLength={phoneHint.phoneMaxLength}
                 />
               </fieldset>
             </div>
 
             {/* Links profissionais. */}
             <div className="mt-6 space-y-3">
-              <p className="text-sm leading-6 text-zinc-400">
+              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                 {t.sectionHelp?.links}
               </p>
               {resume.links.length === 0 && <Empty text={t.empty} />}
-              {resume.links.map((item) => (
+              {resume.links.map((item, index) => (
                 <ItemBlock
                   key={item.id}
-                  title={
-                    LINK_TYPES.find((entry) => entry.value === item.type)?.[
-                      lang
-                    ] ||
-                    LINK_TYPES.find((entry) => entry.value === item.type)
-                      ?.label ||
-                    "Link"
-                  }
+                  title={resolveLinkLabel(item, lang, t.genericLink)}
                   subtitle={sanitizeUrlDisplay(item.url)}
                   removeLabel={t.remove}
                   onRemove={() => removeItem("links", item.id)}
+                  onMoveUp={() => moveItem("links", index, -1)}
+                  onMoveDown={() => moveItem("links", index, 1)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < resume.links.length - 1}
+                  moveUpLabel={t.moveUp}
+                  moveDownLabel={t.moveDown}
                 >
                   <div className="grid gap-3 md:grid-cols-[180px_1fr]">
                     <Choice
@@ -746,7 +787,20 @@ function App() {
                       }
                       options={getLinkTypeOptions(item.type)}
                     />
+                    {item.type === "other" && (
+                      <Field
+                        label={t.fields.linkTitle}
+                        value={item.title}
+                        onChange={(value) =>
+                          patchItem("links", item.id, "title", value)
+                        }
+                        placeholder={t.placeholders.linkTitle}
+                        tooltip={t.help?.linkTitle}
+                        maxLength={40}
+                      />
+                    )}
                     <Field
+                      className={item.type === "other" ? "md:col-span-2" : ""}
                       label={t.fields.linkUrl}
                       value={item.url}
                       onChange={(value) =>
@@ -788,11 +842,11 @@ function App() {
           {/* Experiência profissional. */}
           <Section id="work" active={active} title={t.sections.work}>
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-zinc-400">
+              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                 {t.sectionHelp?.work}
               </p>
               {resume.work.length === 0 && <Empty text={t.empty} />}
-              {resume.work.map((item) => {
+              {resume.work.map((item, index) => {
                 const workRequired = true;
                 return (
                   <ItemBlock
@@ -803,6 +857,12 @@ function App() {
                       .join(" | ")}
                     removeLabel={t.remove}
                     onRemove={() => removeItem("work", item.id)}
+                    onMoveUp={() => moveItem("work", index, -1)}
+                    onMoveDown={() => moveItem("work", index, 1)}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < resume.work.length - 1}
+                    moveUpLabel={t.moveUp}
+                    moveDownLabel={t.moveDown}
                   >
                     <div className="grid gap-4 md:grid-cols-2">
                       <Field
@@ -813,6 +873,7 @@ function App() {
                         }
                         placeholder={t.placeholders.position}
                         required={workRequired}
+                        maxLength={100}
                       />
                       <Field
                         label={t.fields.company}
@@ -822,6 +883,7 @@ function App() {
                         }
                         placeholder={t.placeholders.company}
                         required={workRequired}
+                        maxLength={100}
                       />
                       <Choice
                         label={t.fields.startMonth}
@@ -839,6 +901,7 @@ function App() {
                         }
                         placeholder={t.placeholders.startYear}
                         type="number"
+                        maxLength={4}
                       />
                       {!item.current && (
                         <>
@@ -858,6 +921,7 @@ function App() {
                             }
                             placeholder={t.placeholders.endYear}
                             type="number"
+                            maxLength={4}
                           />
                         </>
                       )}
@@ -876,6 +940,7 @@ function App() {
                         }
                         placeholder={t.placeholders.stack}
                         tooltip={t.help?.stack}
+                        maxLength={100}
                       />
                     </div>
                     <Area
@@ -913,11 +978,11 @@ function App() {
           {/* Formação acadêmica. */}
           <Section id="education" active={active} title={t.sections.education}>
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-zinc-400">
+              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                 {t.sectionHelp?.education}
               </p>
               {resume.education.length === 0 && <Empty text={t.empty} />}
-              {resume.education.map((item) => {
+              {resume.education.map((item, index) => {
                 const educationRequired = true;
                 const endDateRequired = item.status !== "doing";
                 return (
@@ -927,6 +992,12 @@ function App() {
                     subtitle={item.school}
                     removeLabel={t.remove}
                     onRemove={() => removeItem("education", item.id)}
+                    onMoveUp={() => moveItem("education", index, -1)}
+                    onMoveDown={() => moveItem("education", index, 1)}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < resume.education.length - 1}
+                    moveUpLabel={t.moveUp}
+                    moveDownLabel={t.moveDown}
                   >
                     <div className="grid gap-4 md:grid-cols-2">
                       <Choice
@@ -946,6 +1017,7 @@ function App() {
                         }
                         placeholder={t.placeholders.course}
                         required={educationRequired}
+                        maxLength={100}
                       />
                       <Field
                         label={t.fields.school}
@@ -955,6 +1027,7 @@ function App() {
                         }
                         placeholder={t.placeholders.school}
                         required={educationRequired}
+                        maxLength={100}
                       />
                       <Choice
                         label={t.fields.status}
@@ -983,6 +1056,7 @@ function App() {
                         placeholder={t.placeholders.startYear}
                         type="number"
                         required={educationRequired}
+                        maxLength={4}
                       />
                       {item.status !== "doing" && (
                         <>
@@ -1004,6 +1078,7 @@ function App() {
                             placeholder={t.placeholders.endYear}
                             type="number"
                             required={endDateRequired}
+                            maxLength={4}
                           />
                         </>
                       )}
@@ -1034,7 +1109,7 @@ function App() {
           <Section id="skills" active={active} title={t.sections.skills}>
             <p className="mb-2 text-xs text-zinc-500">{t.skillsInstruction}</p>
             <Area
-              label={t.fields.skills}
+              label={t.generalSkills}
               value={skillsDraft}
               onChange={updateSkills}
               onFocus={() => setIsEditingSkills(true)}
@@ -1049,28 +1124,40 @@ function App() {
               {resume.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="rounded-full border border-purple-500/40 bg-purple-950/50 px-3 py-1 text-sm text-purple-100"
+                  className="rounded-full border border-purple-300 bg-purple-50 px-3 py-1 text-sm text-purple-800 dark:border-purple-500/40 dark:bg-purple-950/50 dark:text-purple-100"
                 >
                   {skill}
                 </span>
               ))}
             </div>
+
+            <SkillGroups
+              groups={resume.skillGroups || []}
+              onChange={updateSkillGroups}
+              t={t}
+            />
           </Section>
 
           {/* Idiomas. */}
           <Section id="languages" active={active} title={t.sections.languages}>
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-zinc-400">
+              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                 {t.sectionHelp?.languages}
               </p>
               {resume.languages.length === 0 && <Empty text={t.empty} />}
-              {resume.languages.map((item) => (
+              {resume.languages.map((item, index) => (
                 <ItemBlock
                   key={item.id}
                   title={item.name || t.fields.languageName}
                   subtitle={item.level}
                   removeLabel={t.remove}
                   onRemove={() => removeItem("languages", item.id)}
+                  onMoveUp={() => moveItem("languages", index, -1)}
+                  onMoveDown={() => moveItem("languages", index, 1)}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < resume.languages.length - 1}
+                  moveUpLabel={t.moveUp}
+                  moveDownLabel={t.moveDown}
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field
@@ -1081,6 +1168,7 @@ function App() {
                       }
                       placeholder={t.placeholders.languageName}
                       required
+                      maxLength={100}
                     />
                     <Choice
                       label={t.fields.level}
@@ -1110,11 +1198,11 @@ function App() {
             title={t.sections.certificates}
           >
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-zinc-400">
+              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                 {t.sectionHelp?.certificates}
               </p>
               {resume.certificates.length === 0 && <Empty text={t.empty} />}
-              {resume.certificates.map((item) => {
+              {resume.certificates.map((item, index) => {
                 const certificateRequired = true;
                 return (
                   <ItemBlock
@@ -1125,6 +1213,12 @@ function App() {
                       .join(" | ")}
                     removeLabel={t.remove}
                     onRemove={() => removeItem("certificates", item.id)}
+                    onMoveUp={() => moveItem("certificates", index, -1)}
+                    onMoveDown={() => moveItem("certificates", index, 1)}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < resume.certificates.length - 1}
+                    moveUpLabel={t.moveUp}
+                    moveDownLabel={t.moveDown}
                   >
                     <div className="grid gap-4 md:grid-cols-2">
                       <Field
@@ -1135,6 +1229,7 @@ function App() {
                         }
                         placeholder={t.placeholders.certificate}
                         required={certificateRequired}
+                        maxLength={100}
                       />
                       <Field
                         label={t.fields.issuer}
@@ -1144,6 +1239,7 @@ function App() {
                         }
                         placeholder={t.placeholders.issuer}
                         required={certificateRequired}
+                        maxLength={100}
                       />
                       <Field
                         label={t.fields.date}
@@ -1153,6 +1249,7 @@ function App() {
                         }
                         placeholder={t.placeholders.date}
                         required={certificateRequired}
+                        maxLength={7}
                       />
                       <Field
                         label={t.fields.hours}
@@ -1162,6 +1259,7 @@ function App() {
                         }
                         placeholder={t.placeholders.hours}
                         required={certificateRequired}
+                        maxLength={20}
                       />
                       <Field
                         className="md:col-span-2"
@@ -1173,6 +1271,18 @@ function App() {
                         placeholder={t.placeholders.proof}
                       />
                     </div>
+                    {isFilled(item.proof) && isUrlValid(item.proof) && (
+                      <p className="mt-2 text-xs">
+                        <a
+                          href={sanitizeUrlDisplay(item.proof) ? item.proof : undefined}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="font-semibold text-purple-700 underline decoration-purple-300 underline-offset-2 hover:text-purple-500 dark:text-purple-300 dark:decoration-purple-500"
+                        >
+                          [{t.certificateLink}]
+                        </a>
+                      </p>
+                    )}
                     <Area
                       className="mt-4"
                       label={t.fields.notes}
@@ -1195,12 +1305,12 @@ function App() {
             </div>
           </Section>
 
-          <div className="desktop-wizard-actions mt-5 hidden flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-950/80 p-4 lg:flex lg:flex-row lg:items-center lg:justify-between">
+          <div className="desktop-wizard-actions mt-5 hidden flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/80 lg:flex lg:flex-row lg:items-center lg:justify-between">
             <button
               type="button"
               onClick={handleWizardBack}
               disabled={isFirstStep}
-              className="min-h-[42px] rounded-md border border-zinc-700 px-4 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-45"
+              className="min-h-[42px] rounded-md border border-zinc-300 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-900"
             >
               {t.wizard.back}
             </button>
@@ -1221,11 +1331,11 @@ function App() {
         {/* Painel lateral com score e dicas. */}
         <aside className="sidebar-aside space-y-4 lg:sticky lg:top-6 lg:self-start">
           {canShowExport && (
-            <div className="rounded-lg border border-purple-500/80 bg-purple-950/50 p-4 shadow-2xl shadow-purple-950/40">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-200">
+            <div className="rounded-lg border border-purple-300 bg-purple-50 p-4 shadow-2xl shadow-purple-200/40 dark:border-purple-500/80 dark:bg-purple-950/50 dark:shadow-purple-950/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-700 dark:text-purple-200">
                 {t.generate}
               </p>
-              <p className="mt-2 text-sm leading-6 text-zinc-200">
+              <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-200">
                 {t.wizard.exportReady}
               </p>
               <div className="mt-4 grid gap-3">
@@ -1242,7 +1352,7 @@ function App() {
                   type="button"
                   onClick={handleExport}
                   disabled={isBusy}
-                  className="min-h-[46px] rounded-md bg-purple-500 px-5 text-sm font-bold text-white shadow-lg shadow-purple-900/60 transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-[46px] rounded-md bg-purple-600 px-5 text-sm font-bold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-purple-500 dark:shadow-purple-900/60 dark:hover:bg-purple-400"
                 >
                   {buttonText}
                 </button>
@@ -1250,8 +1360,8 @@ function App() {
             </div>
           )}
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-300 transition-opacity">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-600 transition-opacity dark:text-purple-300">
               {isSaving ? t.savingState : t.saveState}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1270,17 +1380,17 @@ function App() {
             <button
               type="button"
               onClick={handleClear}
-              className="mt-5 flex min-h-[40px] w-full items-center justify-center rounded-md border border-red-900/40 bg-red-950/20 text-sm font-semibold text-red-400 transition hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              className="mt-5 flex min-h-[40px] w-full items-center justify-center rounded-md border border-red-300 bg-red-50 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500/50 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-900/40"
             >
               {t.clear}
             </button>
           </div>
 
-          <div className="rounded-lg border border-purple-900/70 bg-purple-950/30 p-4">
-            <p className="text-sm font-semibold text-purple-100">ATS</p>
-            <ul className="mt-3 space-y-3 text-sm leading-6 text-zinc-300">
+          <div className="rounded-lg border border-purple-200 bg-purple-50/70 p-4 dark:border-purple-900/70 dark:bg-purple-950/30">
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-100">ATS</p>
+            <ul className="mt-3 space-y-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
               {t.tips.map((tip) => (
-                <li key={tip} className="border-l border-purple-500 pl-3">
+                <li key={tip} className="border-l border-purple-400 pl-3 dark:border-purple-500">
                   {tip}
                 </li>
               ))}
@@ -1289,17 +1399,17 @@ function App() {
         </aside>
       </main>
 
-      <div className="mobile-wizard-bar fixed inset-x-0 bottom-0 z-50 border-t border-purple-900/70 bg-black/95 px-4 py-3 shadow-2xl shadow-purple-950/60 backdrop-blur lg:hidden">
+      <div className="mobile-wizard-bar fixed inset-x-0 bottom-0 z-50 border-t border-purple-200 bg-white/95 px-4 py-3 shadow-2xl shadow-purple-200/60 backdrop-blur dark:border-purple-900/70 dark:bg-black/95 dark:shadow-purple-950/60 lg:hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-3">
           <button
             type="button"
             onClick={handleWizardBack}
             disabled={isFirstStep}
-            className="min-h-[44px] rounded-md border border-purple-800/70 px-4 text-sm font-semibold text-purple-100 transition hover:border-purple-500 hover:bg-purple-950/50 disabled:cursor-not-allowed disabled:opacity-45"
+            className="min-h-[44px] rounded-md border border-purple-300 px-4 text-sm font-semibold text-purple-700 transition hover:border-purple-500 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-purple-800/70 dark:text-purple-100 dark:hover:bg-purple-950/50"
           >
             {t.wizard.back}
           </button>
-          <span className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
+          <span className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-purple-600 dark:text-purple-300">
             {activeStepIndex + 1}/{TABS.length}
           </span>
           <button

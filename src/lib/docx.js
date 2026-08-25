@@ -1,5 +1,5 @@
-import { Document, HeadingLevel, Paragraph, TextRun } from "docx";
-import { clean, joinDate, sanitizeUrlForExport } from "../utils/helpers";
+import { Document, ExternalHyperlink, HeadingLevel, Paragraph, TextRun } from "docx";
+import { clean, joinDate, resolveLinkLabel, sanitizeUrlForExport } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";
 
 const bulletLines = (value) => (
@@ -32,6 +32,38 @@ export function buildDocx(resume, t, lang) {
     children.push(new Paragraph({ text: output, heading: HeadingLevel.HEADING_2 }));
   };
 
+  // Adiciona uma linha de texto seguida de um link clicável, ex:
+  // "AWS, Coursera | 05/2024 | 40h  [Certificado]"
+  const addLineWithLink = (text, url, linkText) => {
+    const output = clean(text);
+    const sanitizedUrl = sanitizeUrlForExport(url);
+    const runs = [];
+
+    if (output) {
+      runs.push(new TextRun({ text: sanitizedUrl ? `${output}  ` : output }));
+    }
+
+    if (sanitizedUrl) {
+      runs.push(
+        new ExternalHyperlink({
+          link: sanitizedUrl,
+          children: [
+            new TextRun({
+              text: `[${linkText}]`,
+              style: "Hyperlink",
+              color: "7E22CE",
+              underline: {},
+            }),
+          ],
+        }),
+      );
+    }
+
+    if (runs.length) {
+      children.push(new Paragraph({ children: runs }));
+    }
+  };
+
   addLine(resume.name, { bold: true, size: 32 });
   addLine(resume.role, { italics: true });
 
@@ -44,11 +76,35 @@ export function buildDocx(resume, t, lang) {
     .join(" | ");
   addLine(contact);
 
-  const links = resume.links
-    .map((link) => sanitizeUrlForExport(link.url))
-    .filter(Boolean)
-    .join(" | ");
-  addLine(links);
+  const linkItems = resume.links
+    .map((link) => ({
+      url: sanitizeUrlForExport(link.url),
+      label: resolveLinkLabel(link, lang, t.genericLink),
+    }))
+    .filter((item) => item.url);
+
+  if (linkItems.length) {
+    const runs = [];
+    linkItems.forEach((item, index) => {
+      runs.push(
+        new ExternalHyperlink({
+          link: item.url,
+          children: [
+            new TextRun({
+              text: `[${item.label}]`,
+              style: "Hyperlink",
+              color: "7E22CE",
+              underline: {},
+            }),
+          ],
+        }),
+      );
+      if (index < linkItems.length - 1) {
+        runs.push(new TextRun({ text: "   " }));
+      }
+    });
+    children.push(new Paragraph({ children: runs }));
+  }
 
   if (resume.summary) {
     addHeading(t.sections.story);
@@ -80,9 +136,17 @@ export function buildDocx(resume, t, lang) {
     });
   }
 
-  if (resume.skills.length) {
+  const hasSkills = resume.skills.length || (resume.skillGroups || []).some((group) => group.skills?.length);
+  if (hasSkills) {
     addHeading(t.sections.skills);
-    addLine(resume.skills.join(", "));
+    if (resume.skills.length) {
+      addLine(resume.skills.join(", "));
+    }
+    (resume.skillGroups || []).forEach((group) => {
+      if (!group.skills?.length) return;
+      const label = clean(group.title) || t.generalSkills;
+      addLine(`${label}: ${group.skills.join(", ")}`, { bold: !!clean(group.title) });
+    });
   }
 
   if (resume.languages.length) {
@@ -98,7 +162,7 @@ export function buildDocx(resume, t, lang) {
       addLine(item.name, { bold: true });
       addLine([item.issuer, item.date, item.hours].filter(Boolean).join(" | "));
       addLine(item.notes);
-      addLine(item.proof);
+      addLineWithLink("", item.proof, t.certificateLink);
     });
   }
 

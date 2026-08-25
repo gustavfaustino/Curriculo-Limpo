@@ -14,6 +14,7 @@ export const BLANK = {
     work: [],
     education: [],
     skills: [],
+    skillGroups: [],
     languages: [],
     certificates: [],
 };
