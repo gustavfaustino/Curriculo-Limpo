@@ -1,5 +1,5 @@
 import { PDFDocument, PageSizes, PDFName, PDFString, rgb, StandardFonts } from "pdf-lib";
-import { clean, joinDate, resolveLinkLabel, sanitizeUrlForExport } from "../utils/helpers";
+import { clean, joinDate, sanitizeUrlForExport } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";
 
 // Adiciona uma anotação de link clicável (URI) sobre uma área retangular da página.
@@ -37,7 +37,7 @@ export async function buildPdf(resume, t, lang) {
 
     let page = doc.addPage(PageSizes.A4);
     const { width, height } = page.getSize();
-    const margin = 48;
+    const margin = 72;
     const maxWidth = width - margin * 2;
     const colors = {
         text: rgb(0.12, 0.12, 0.12),
@@ -85,34 +85,6 @@ export async function buildPdf(resume, t, lang) {
     // Desenha uma linha com múltiplos links clicáveis lado a lado (ex: os
     // links de contato do topo do currículo), separados por " | ", quebrando
     // para a próxima linha automaticamente quando necessário.
-    const drawLinksLine = (items, x, size = 9) => {
-        if (!items.length) return;
-        newPageIfNeeded(size * 1.6);
-        const lineHeight = size * 1.42;
-        const sepWidth = regular.widthOfTextAtSize("   ", size);
-        let cursorX = x;
-
-        items.forEach((item, index) => {
-            const label = `[${item.label}]`;
-            const labelWidth = bold.widthOfTextAtSize(label, size);
-
-            if (cursorX + labelWidth > x + maxWidth && cursorX > x) {
-                y -= lineHeight;
-                newPageIfNeeded(lineHeight);
-                cursorX = x;
-            }
-
-            drawLink(label, cursorX, y, item.url, size);
-            cursorX += labelWidth;
-
-            if (index < items.length - 1) {
-                cursorX += sepWidth;
-            }
-        });
-
-        y -= lineHeight;
-    };
-
     const wrap = (text, x, size = 10, font = regular, color = colors.text, localWidth = maxWidth) => {
         const source = clean(text);
 
@@ -178,9 +150,9 @@ export async function buildPdf(resume, t, lang) {
 
     const heading = (label) => {
         newPageIfNeeded(42);
-        y -= 12;
-        draw(label.toUpperCase(), margin, y, 11, bold, colors.title);
         y -= 18;
+        draw(label.toUpperCase(), margin, y, 11, bold, colors.title);
+        y -= 22;
     };
 
     draw(resume.name, margin, y, 18, bold, colors.title);
@@ -199,19 +171,21 @@ export async function buildPdf(resume, t, lang) {
         .join(" | ");
     wrap(contact, margin, 9, regular, colors.text);
     if (resume.links.length) {
-        const linkItems = resume.links
-            .map((link) => ({
-                url: sanitizeUrlForExport(link.url),
-                label: resolveLinkLabel(link, lang, t.genericLink),
-            }))
-            .filter((item) => item.url);
-
-        drawLinksLine(linkItems, margin, 9);
+        const urls = resume.links
+            .map((link) => sanitizeUrlForExport(link.url))
+            .filter(Boolean);
+        wrap(urls.join(" | "), margin, 9, regular, colors.text);
     }
 
     if (resume.summary) {
         heading(t.sections.story);
         wrap(resume.summary, margin, 10.5);
+    }
+
+    if (resume.recognition) {
+        heading(t.sections.recognition || "Reconhecimentos");
+        wrap(resume.recognition, margin, 10.5);
+        y -= 8;
     }
 
     if (resume.work.length) {
@@ -227,8 +201,13 @@ export async function buildPdf(resume, t, lang) {
             if (item.stack) {
                 wrap(`Tecnologias: ${item.stack}`, margin, 9, regular, colors.faint);
             }
-            wrap(item.duties, margin + 8, 10);
-            wrap(item.wins, margin + 8, 10);
+            const bullets = (value) => (value || "")
+                .split(/\n+/)
+                .filter(Boolean)
+                .map((line) => `• ${line.replace(/^[-*]\s?/, "")}`)
+                .join("\n");
+            wrap(bullets(item.duties), margin + 8, 10);
+            wrap(bullets(item.wins), margin + 8, 10);
             y -= 8;
         });
     }
@@ -261,7 +240,7 @@ export async function buildPdf(resume, t, lang) {
             newPageIfNeeded(28);
             draw(`${label}:`, margin, y, 9.5, bold, colors.faint);
             y -= 13;
-            wrap(group.skills.join(", "), margin, 10);
+            wrap(group.skills.join(", "), margin, 10, regular, colors.text);
         });
     }
 

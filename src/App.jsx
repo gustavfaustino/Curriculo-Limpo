@@ -10,6 +10,7 @@ import { useStoredResume, BLANK } from "./hooks/useStoredResume";
 import { useTheme } from "./hooks/useTheme";
 import { buildPdf } from "./lib/pdf";
 import { buildDocx } from "./lib/docx";
+import { importDocx } from "./lib/importDocx";
 import {
   createId,
   isEmailValid,
@@ -66,7 +67,14 @@ function App() {
   // Erros visuais dos campos principais.
   const [errors, setErrors] = useState({ name: false, email: false });
   const [isBusy, setIsBusy] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackName, setFeedbackName] = useState("");
+  const [feedbackEmail, setFeedbackEmail] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const importInputRef = useRef(null);
 
   // Área central usada para rolar até o formulário.
   const contentRef = useRef(null);
@@ -301,14 +309,12 @@ function App() {
       item.startMonth,
       item.startYear,
     ];
-    if (item.status !== "doing") {
-      required.push(item.endMonth, item.endYear);
-    }
+    required.push(item.endMonth, item.endYear);
     return required.some((field) => !isFilled(field));
   }, []);
 
   const certificateMissing = useCallback((item) => {
-    const required = [item.name, item.issuer, item.date, item.hours];
+    const required = [item.name, item.issuer];
     return required.some((field) => !isFilled(field));
   }, []);
 
@@ -404,6 +410,30 @@ function App() {
     }
   };
 
+  const handleImport = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!/\.docx$/i.test(file.name)) {
+      setNotice({ type: "error", message: t.importDocxOnly });
+      return;
+    }
+    setIsBusy(true);
+    try {
+      const imported = await importDocx(file);
+      setResume((current) => ({ ...current, ...imported }));
+      setSkillsDraft(imported.skills.join(", "));
+      setErrors({ name: false, email: false });
+      setMaxUnlockedStep(TABS.length - 1);
+      setActive("profile");
+      setNotice({ type: "success", message: t.importSuccess });
+    } catch (error) {
+      setNotice({ type: "error", message: error.message || t.importError });
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   // Valida os campos e executa a exportação.
   const handleExport = async () => {
     const missing = [];
@@ -485,6 +515,9 @@ function App() {
       }
 
       setNotice({ type: "success", message: t.success });
+      setFeedback("");
+      setFeedbackError("");
+      setShowFeedbackModal(true);
     } catch (error) {
       setNotice({
         type: "error",
@@ -492,6 +525,46 @@ function App() {
       });
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!isFilled(feedbackName) || !isFilled(feedbackEmail) || !isEmailValid(feedbackEmail)) {
+      setFeedbackError(t.feedback.invalidEmail);
+      return;
+    }
+    if (!isFilled(feedback)) {
+      setFeedbackError(t.feedback.messageRequired);
+      return;
+    }
+
+    setIsSendingFeedback(true);
+    setFeedbackError("");
+    try {
+      const response = await fetch("https://formsubmit.co/ajax/gustavo.gfoliveira@hotmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: feedbackName,
+          email: feedbackEmail,
+          message: feedback,
+          _subject: t.feedback.subject,
+          _captcha: "false",
+        }),
+      });
+      if (!response.ok) throw new Error("Feedback request failed");
+      setShowFeedbackModal(false);
+      setFeedbackName("");
+      setFeedbackEmail("");
+      setFeedback("");
+      setNotice({ type: "success", message: t.feedback.sent });
+    } catch {
+      setFeedbackError(t.feedback.error);
+    } finally {
+      setIsSendingFeedback(false);
     }
   };
 
@@ -562,6 +635,21 @@ function App() {
             </h1>
 
             <div className="header-actions flex shrink-0 items-end gap-2">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleImport}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                disabled={isBusy}
+                className="min-h-[40px] rounded-md border border-purple-300 px-3 text-xs font-semibold text-purple-700 transition hover:bg-purple-50 disabled:opacity-50 dark:border-purple-700 dark:text-purple-200 dark:hover:bg-purple-950/50"
+              >
+                {t.importDocx}
+              </button>
               <Choice
                 label={t.language}
                 value={lang}
@@ -837,6 +925,15 @@ function App() {
               placeholder={t.placeholders.summary}
               rows={9}
             />
+            <Area
+              className="mt-5"
+              label={t.fields.recognition}
+              value={resume.recognition}
+              onChange={(value) => setRoot("recognition", value)}
+              placeholder={t.placeholders.recognition}
+              rows={5}
+              tooltip={t.help?.recognition}
+            />
           </Section>
 
           {/* Experiência profissional. */}
@@ -984,7 +1081,7 @@ function App() {
               {resume.education.length === 0 && <Empty text={t.empty} />}
               {resume.education.map((item, index) => {
                 const educationRequired = true;
-                const endDateRequired = item.status !== "doing";
+                const endDateRequired = true;
                 return (
                   <ItemBlock
                     key={item.id}
@@ -1058,10 +1155,9 @@ function App() {
                         required={educationRequired}
                         maxLength={4}
                       />
-                      {item.status !== "doing" && (
-                        <>
+                      <>
                           <Choice
-                            label={t.fields.endMonth}
+                            label={item.status === "doing" ? t.fields.expectedEndMonth : t.fields.endMonth}
                             value={item.endMonth}
                             onChange={(value) =>
                               patchItem("education", item.id, "endMonth", value)
@@ -1070,7 +1166,7 @@ function App() {
                             required={endDateRequired}
                           />
                           <Field
-                            label={t.fields.endYear}
+                            label={item.status === "doing" ? t.fields.expectedEndYear : t.fields.endYear}
                             value={item.endYear}
                             onChange={(value) =>
                               patchItem("education", item.id, "endYear", value)
@@ -1080,8 +1176,7 @@ function App() {
                             required={endDateRequired}
                             maxLength={4}
                           />
-                        </>
-                      )}
+                      </>
                     </div>
                     <Area
                       className="mt-4"
@@ -1248,7 +1343,6 @@ function App() {
                           patchItem("certificates", item.id, "date", value)
                         }
                         placeholder={t.placeholders.date}
-                        required={certificateRequired}
                         maxLength={7}
                       />
                       <Field
@@ -1258,7 +1352,6 @@ function App() {
                           patchItem("certificates", item.id, "hours", value)
                         }
                         placeholder={t.placeholders.hours}
-                        required={certificateRequired}
                         maxLength={20}
                       />
                       <Field
@@ -1422,6 +1515,51 @@ function App() {
           </button>
         </div>
       </div>
+
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+          <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="feedback-title" className="text-xl font-semibold text-zinc-900 dark:text-white">{t.feedback.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{t.feedback.description}</p>
+              </div>
+              <button type="button" onClick={() => setShowFeedbackModal(false)} className="text-2xl leading-none text-zinc-500 hover:text-zinc-900 dark:hover:text-white" aria-label={t.feedback.close}>×</button>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field
+                label={t.feedback.nameLabel}
+                value={feedbackName}
+                onChange={setFeedbackName}
+                placeholder={t.feedback.namePlaceholder}
+                required
+              />
+              <Field
+                label={t.feedback.emailLabel}
+                value={feedbackEmail}
+                onChange={setFeedbackEmail}
+                placeholder={t.feedback.emailPlaceholder}
+                type="email"
+                required
+                error={isFilled(feedbackEmail) && !isEmailValid(feedbackEmail)}
+              />
+            </div>
+            <Area
+              className="mt-5"
+              label={t.feedback.label}
+              value={feedback}
+              onChange={setFeedback}
+              placeholder={t.feedback.placeholder}
+              rows={5}
+            />
+            {feedbackError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-300">{feedbackError}</p>}
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setShowFeedbackModal(false)} className="min-h-[42px] rounded-md border border-zinc-300 px-4 text-sm font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900">{t.feedback.later}</button>
+              <button type="button" onClick={handleFeedbackSubmit} disabled={isSendingFeedback} className="min-h-[42px] rounded-md bg-purple-600 px-4 text-sm font-semibold text-white hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60">{isSendingFeedback ? t.feedback.sending : t.feedback.send}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

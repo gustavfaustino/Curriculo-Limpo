@@ -1,5 +1,5 @@
 import { Document, ExternalHyperlink, HeadingLevel, Paragraph, TextRun } from "docx";
-import { clean, joinDate, resolveLinkLabel, sanitizeUrlForExport } from "../utils/helpers";
+import { clean, joinDate, sanitizeUrlForExport } from "../utils/helpers";
 import { EDUCATION_TYPES, EDUCATION_STATUS } from "../constants/data";
 
 const bulletLines = (value) => (
@@ -29,7 +29,11 @@ export function buildDocx(resume, t, lang) {
   const addHeading = (text) => {
     const output = clean(text);
     if (!output) return;
-    children.push(new Paragraph({ text: output, heading: HeadingLevel.HEADING_2 }));
+    children.push(new Paragraph({
+      text: output,
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 300, after: 140 },
+    }));
   };
 
   // Adiciona uma linha de texto seguida de um link clicável, ex:
@@ -77,38 +81,22 @@ export function buildDocx(resume, t, lang) {
   addLine(contact);
 
   const linkItems = resume.links
-    .map((link) => ({
-      url: sanitizeUrlForExport(link.url),
-      label: resolveLinkLabel(link, lang, t.genericLink),
-    }))
-    .filter((item) => item.url);
+    .map((link) => sanitizeUrlForExport(link.url))
+    .filter(Boolean);
 
   if (linkItems.length) {
-    const runs = [];
-    linkItems.forEach((item, index) => {
-      runs.push(
-        new ExternalHyperlink({
-          link: item.url,
-          children: [
-            new TextRun({
-              text: `[${item.label}]`,
-              style: "Hyperlink",
-              color: "7E22CE",
-              underline: {},
-            }),
-          ],
-        }),
-      );
-      if (index < linkItems.length - 1) {
-        runs.push(new TextRun({ text: "   " }));
-      }
-    });
-    children.push(new Paragraph({ children: runs }));
+    addLine(linkItems.join(" | "));
   }
 
   if (resume.summary) {
     addHeading(t.sections.story);
     addLine(resume.summary);
+  }
+
+  if (resume.recognition) {
+    addHeading(t.sections.recognition || "Reconhecimentos");
+    addLine(resume.recognition);
+    children.push(new Paragraph({ text: "", spacing: { after: 120 } }));
   }
 
   if (resume.work.length) {
@@ -145,7 +133,12 @@ export function buildDocx(resume, t, lang) {
     (resume.skillGroups || []).forEach((group) => {
       if (!group.skills?.length) return;
       const label = clean(group.title) || t.generalSkills;
-      addLine(`${label}: ${group.skills.join(", ")}`, { bold: !!clean(group.title) });
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: `${label}: `, bold: true }),
+          new TextRun({ text: group.skills.join(", ") }),
+        ],
+      }));
     });
   }
 
@@ -166,5 +159,12 @@ export function buildDocx(resume, t, lang) {
     });
   }
 
-  return new Document({ sections: [{ children }] });
+  return new Document({ sections: [{
+    properties: {
+      page: {
+        margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+      },
+    },
+    children,
+  }] });
 }

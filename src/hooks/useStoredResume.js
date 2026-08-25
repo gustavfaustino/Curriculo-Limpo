@@ -11,6 +11,7 @@ export const BLANK = {
     city: "",
     links: [],
     summary: "",
+    recognition: "",
     work: [],
     education: [],
     skills: [],
