@@ -32,27 +32,6 @@ O currículo é editado no navegador e salvo localmente (`localStorage`). Não h
 
 Após uma importação, revise os campos antes de exportar. Documentos com layout complexo, caixas de texto ou informações em imagens podem exigir ajustes manuais, pois a importação trabalha sobre o texto extraído do DOCX.
 
-## Desenvolvimento local
-
-Requisitos: Node.js e npm.
-
-```bash
-npm install
-npm start
-```
-
-Abra `http://localhost:3000` no navegador. Para criar a versão de produção:
-
-```bash
-npm run build
-```
-
-Os testes disponíveis podem ser executados com:
-
-```bash
-npm test
-```
-
 ## Tecnologias
 
 - React 19 e React DOM
@@ -62,19 +41,6 @@ npm test
 - `mammoth` para extração de texto na importação de DOCX
 - Create React App (`react-scripts`)
 
-## Estrutura principal
-
-```text
-src/
-├── App.jsx                  # interface, etapas, validações e exportação
-├── components/              # componentes de formulário e visualização
-├── constants/               # textos, opções e dados padrão
-├── hooks/                   # currículo persistido e tema
-├── lib/importDocx.js        # importação e parsing de DOCX ATS
-├── lib/pdf.js               # exportação PDF
-└── lib/docx.js              # exportação Word
-```
-
 ## Licença
 
-Este projeto ainda não define uma licença de código aberto no repositório.
+Este projeto é distribuído sob a licença MIT. Consulte o arquivo `LICENSE` para o texto completo.
